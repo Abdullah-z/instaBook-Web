@@ -363,23 +363,34 @@ const Messages = () => {
             ) : (
               conversations.map((conv) => {
                 const other = getOtherUser(conv);
-                if (!other) return null;
-                const isActive = currentChat?._id === other._id;
-                const isOnline = onlineUsers.has(other._id);
+                if (!other && !conv.isGroup) return null;
+
+                const displayName = conv.isGroup
+                  ? conv.groupName
+                  : other.username;
+                const displayAvatar = conv.isGroup
+                  ? conv.groupAvatar
+                  : other.avatar;
+                const isActive = conv.isGroup
+                  ? currentChat?._id === conv._id
+                  : currentChat?._id === other._id;
+                const isOnline = !conv.isGroup && onlineUsers.has(other._id);
 
                 return (
                   <div
                     key={conv._id}
                     onClick={() => {
-                      setCurrentChat(other);
-                      setSearchParams({ id: other._id });
+                      setCurrentChat(conv.isGroup ? conv : other);
+                      setSearchParams({
+                        id: conv.isGroup ? conv._id : other._id,
+                      });
                     }}
-                    className={`flex items-center gap-4 p-4 hover:bg-bg-surface cursor-pointer transition-colors ${isActive ? "bg-bg-surface" : ""}`}
+                    className={`flex items-center gap-4 p-4 hover:bg-bg-surface cursor-pointer transition-colors ${isActive ? "bg-bg-surface border-l-4 border-primary" : ""}`}
                   >
                     <div className="relative">
                       <img
-                        src={other.avatar || "https://picsum.photos/50"}
-                        alt={other.username}
+                        src={displayAvatar || "https://picsum.photos/50"}
+                        alt={displayName}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                       {isOnline && (
@@ -388,7 +399,7 @@ const Messages = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline">
-                        <h3 className="font-bold truncate">{other.username}</h3>
+                        <h3 className="font-bold truncate">{displayName}</h3>
                         <span className="text-xs text-text-secondary whitespace-nowrap">
                           {format(conv.updatedAt)}
                         </span>
@@ -434,20 +445,35 @@ const Messages = () => {
                   </button>
                   <div className="relative">
                     <img
-                      src={currentChat.avatar || "https://picsum.photos/50"}
-                      alt={currentChat.username}
+                      src={
+                        (currentChat.isGroup
+                          ? currentChat.groupAvatar
+                          : currentChat.avatar) || "https://picsum.photos/50"
+                      }
+                      alt={
+                        currentChat.isGroup
+                          ? currentChat.groupName
+                          : currentChat.username
+                      }
                       className="w-10 h-10 rounded-full object-cover"
                     />
-                    {onlineUsers.has(currentChat._id) && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-bg-primary"></div>
-                    )}
+                    {!currentChat.isGroup &&
+                      onlineUsers.has(currentChat._id) && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-bg-primary"></div>
+                      )}
                   </div>
                   <div>
-                    <h3 className="font-bold">{currentChat.username}</h3>
+                    <h3 className="font-bold">
+                      {currentChat.isGroup
+                        ? currentChat.groupName
+                        : currentChat.username}
+                    </h3>
                     <span className="text-xs text-text-secondary">
-                      {onlineUsers.has(currentChat._id)
-                        ? "Active now"
-                        : "Offline"}
+                      {currentChat.isGroup
+                        ? `${currentChat.recipients?.length || 0} members`
+                        : onlineUsers.has(currentChat._id)
+                          ? "Active now"
+                          : "Offline"}
                     </span>
                   </div>
                 </div>
@@ -685,13 +711,13 @@ const Messages = () => {
                     HD Quality
                   </label>
                   {/* DEBUG BUTTON */}
-                  <button
+                  {/* <button
                     type="button"
                     onClick={simulateIncomingCall}
                     className="flex items-center gap-2 text-xs font-bold text-red-500 hover:text-red-600 transition-colors"
                   >
                     Test Call
-                  </button>
+                  </button> */}
 
                   <div className="relative">
                     <button
