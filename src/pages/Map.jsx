@@ -30,8 +30,13 @@ import {
   User as UserIcon,
   Calendar,
   MessageCircle,
+  ChevronDown,
+  Search,
+  Palette,
 } from "lucide-react";
+import { ZoomControl } from "react-leaflet";
 import Sidebar from "../components/Sidebar";
+import LocationAutocomplete from "../components/LocationAutocomplete";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -40,6 +45,7 @@ import {
   stopSharingAPI,
   createShoutoutAPI,
 } from "../utils/locationAPI";
+import { getEventsAPI } from "../utils/eventAPI";
 import { toast } from "react-toastify";
 import { format } from "timeago.js";
 
@@ -69,9 +75,11 @@ const createCustomIcon = (type, avatar, isMe) => {
 
   const html = avatar
     ? `<div class="custom-marker ${type}" style="background: ${color};">
+         <div class="marker-pin-pulse"></div>
          <img src="${avatar}" class="marker-avatar" />
        </div>`
     : `<div class="custom-marker ${type}" style="background: ${color};">
+         <div class="marker-pin-pulse"></div>
          <div class="marker-dot"></div>
        </div>`;
 
@@ -132,6 +140,23 @@ const Map = () => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [radiusMenuVisible, setRadiusMenuVisible] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [shoutoutModalVisible, setShoutoutModalVisible] = useState(false);
+  const [shoutoutContent, setShoutoutContent] = useState("");
+  const [isSelectingLocation, setIsSelectingLocation] = useState(false);
+
+  const queryParams = useMemo(
+    () => new URLSearchParams(window.location.search),
+    [],
+  );
+  const focusedLat = queryParams.get("lat")
+    ? parseFloat(queryParams.get("lat"))
+    : null;
+  const focusedLng = queryParams.get("lng")
+    ? parseFloat(queryParams.get("lng"))
+    : null;
 
   const mapRef = useRef(null);
 
@@ -182,6 +207,18 @@ const Map = () => {
       );
 
       setSharedLocations(Array.isArray(data) ? data : []);
+
+      // Fetch Events
+      try {
+        const eventRes = await getEventsAPI(
+          deviceLocation.lat,
+          deviceLocation.lng,
+          radius,
+        );
+        setEvents(eventRes.events || []);
+      } catch (e) {
+        console.error("Error fetching events on map:", e);
+      }
     } catch (err) {
       console.error("Error fetching locations:", err);
       toast.error("Failed to fetch locations");
@@ -248,9 +285,54 @@ const Map = () => {
     }
   };
 
+  const handleCreateShoutout = async () => {
+    if (!shoutoutContent.trim()) {
+      toast.error("Please enter some graffiti text!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const lat = selectedLocation?.lat || deviceLocation?.lat;
+      const lng = selectedLocation?.lng || deviceLocation?.lng;
+
+      if (!lat || !lng) {
+        toast.error("Location not available");
+        return;
+      }
+
+      await createShoutoutAPI(lat, lng, shoutoutContent, "public");
+      toast.success("Graffiti created!");
+      setShoutoutContent("");
+      setShoutoutModalVisible(false);
+      setSelectedLocation(null);
+      await fetchLocations();
+    } catch (err) {
+      console.error("Error creating shoutout:", err);
+      toast.error("Failed to create graffiti");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMapClick = (latlng) => {
-    setSelectedLocation(latlng);
-    setSharingType("static");
+    if (isSelectingLocation) {
+      setSelectedLocation(latlng);
+      setIsSelectingLocation(false);
+      setShoutoutModalVisible(true);
+    } else {
+      setSelectedLocation(latlng);
+      setSharingType("static");
+    }
+  };
+
+  const handleLocationSelect = (item) => {
+    const [lng, lat] = item.coordinates;
+    setSelectedLocation({ lat, lng });
+    setShowSearch(false);
+    if (mapRef.current) {
+      mapRef.current.setView([lat, lng], 15);
+    }
   };
 
   const resetToMyLocation = () => {
@@ -289,8 +371,40 @@ const Map = () => {
       });
     });
 
+    // Add Events
+    events.forEach((ev) => {
+      markerList.push({
+        id: ev._id,
+        lat: ev.location.coordinates[1],
+        lng: ev.location.coordinates[0],
+        type: "event",
+        username: ev.title,
+        fullname: ev.title,
+        avatar: ev.image || "",
+        isMe: false,
+        lastUpdate: ev.updatedAt,
+        address: ev.address,
+        eventData: ev,
+      });
+    });
+
+    // Add Focused Point from URL if any
+    if (focusedLat && focusedLng) {
+      markerList.push({
+        id: "focused-point",
+        lat: focusedLat,
+        lng: focusedLng,
+        type: "focused",
+        username: "Shared Location",
+        fullname: "Pinned Spot",
+        avatar: null,
+        isMe: false,
+        lastUpdate: new Date().toISOString(),
+      });
+    }
+
     return markerList;
-  }, [sharedLocations, user]);
+  }, [sharedLocations, events, user, focusedLat, focusedLng]);
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
@@ -318,6 +432,7 @@ const Map = () => {
           <MapContainer
             center={[deviceLocation.lat, deviceLocation.lng]}
             zoom={13}
+            zoomControl={false}
             className={`h-full w-full ${theme === "dark" ? "dark-map" : ""}`}
             ref={mapRef}
           >
@@ -325,11 +440,14 @@ const Map = () => {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <ZoomControl position="bottomright" />
 
             <MapController center={selectedLocation || deviceLocation} />
             <MapClickHandler
               onMapClick={handleMapClick}
-              isSelectingLocation={sharingType === "static"}
+              isSelectingLocation={
+                sharingType === "static" || isSelectingLocation
+              }
             />
 
             {/* User location blue dot */}
@@ -373,9 +491,54 @@ const Map = () => {
               ))}
             </MarkerClusterGroup>
           </MapContainer>
+          {isSelectingLocation && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[2000] w-full max-w-xs md:max-w-md animate-bounce">
+              <div className="mx-4 bg-primary text-on-primary px-6 py-4 rounded-3xl shadow-2xl flex items-center justify-between border-2 border-on-primary/20 backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-full">
+                    <MapPin className="animate-pulse" size={24} />
+                  </div>
+                  <span className="font-bold text-lg">Select spot on map</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsSelectingLocation(false);
+                    setShoutoutModalVisible(true);
+                  }}
+                  className="bg-black/20 hover:bg-black/40 p-2 rounded-full transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          )}
 
-          {/* Filter Chips */}
-          <div className="absolute top-4 left-4 right-4 flex gap-2 overflow-x-auto pb-2 z-[1000]">
+          {/* Top Navbar / Search Area */}
+          <div className="absolute top-4 left-4 right-4 flex gap-3 z-[1000]">
+            <div
+              onClick={() => setShowSearch(true)}
+              className="flex-1 bg-bg-surface border-2 border-primary/10 rounded-2xl shadow-2xl flex items-center px-4 py-1 cursor-pointer hover:bg-bg-primary transition-colors"
+            >
+              <Search size={20} className="text-text-secondary mr-3" />
+              <input
+                type="text"
+                readOnly
+                placeholder="Search locations..."
+                className="flex-1 bg-transparent py-3 outline-none font-semibold text-text-primary cursor-pointer"
+              />
+            </div>
+
+            <button
+              onClick={() => setShoutoutModalVisible(true)}
+              className="bg-pink-500 text-white p-4 rounded-2xl shadow-2xl hover:bg-pink-600 transition-all flex items-center justify-center"
+              title="Add Graffiti"
+            >
+              <Palette size={24} />
+            </button>
+          </div>
+
+          {/* Filter Chips - Positioned below search */}
+          <div className="absolute top-24 left-4 right-4 flex gap-2 overflow-x-auto pb-2 z-[1000] no-scrollbar">
             {[
               { value: "all", label: "All", icon: Globe },
               { value: "friends", label: "Friends", icon: Users },
@@ -398,6 +561,39 @@ const Map = () => {
                 {filter.label}
               </button>
             ))}
+          </div>
+
+          {/* Radius Selector */}
+          <div className="absolute top-40 right-4 z-[1000]">
+            <button
+              onClick={() => setRadiusMenuVisible(!radiusMenuVisible)}
+              className="bg-bg-surface border-2 border-primary/20 text-text-primary px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-bg-surface/80 transition-all"
+            >
+              <Navigation size={18} className="text-primary" />
+              {radius >= 10000 ? "All" : `${radius} km`}
+              <ChevronDown size={14} />
+            </button>
+
+            {radiusMenuVisible && (
+              <div className="absolute top-full mt-2 right-0 bg-bg-surface border border-bg-surface rounded-xl shadow-2xl p-2 min-w-[120px] animate-in slide-in-from-top-2 duration-200">
+                {[5, 20, 50, 100, 500, 20000].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      setRadius(r);
+                      setRadiusMenuVisible(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      radius === r
+                        ? "bg-primary text-on-primary"
+                        : "hover:bg-bg-primary text-text-secondary"
+                    }`}
+                  >
+                    {r >= 10000 ? "All" : `${r} km`}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Reset to My Location Button */}
@@ -560,6 +756,35 @@ const Map = () => {
                 </div>
               )}
 
+            {selectedMarker.type === "event" && selectedMarker.eventData && (
+              <div className="space-y-4">
+                {selectedMarker.eventData.image && (
+                  <img
+                    src={selectedMarker.eventData.image}
+                    alt="Event"
+                    className="w-full h-48 object-cover rounded-xl"
+                  />
+                )}
+                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                  <p className="font-bold text-primary flex items-center gap-2">
+                    <Calendar size={18} />
+                    {selectedMarker.eventData.title}
+                  </p>
+                  <p className="text-xs text-text-secondary mt-1">
+                    {selectedMarker.eventData.description}
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    navigate(`/event/${selectedMarker.eventData._id}`)
+                  }
+                  className="w-full bg-primary text-on-primary py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                >
+                  View Event Details
+                </button>
+              </div>
+            )}
+
             {selectedMarker.postData && (
               <div className="space-y-2">
                 {selectedMarker.postData.image && (
@@ -571,7 +796,7 @@ const Map = () => {
                 )}
                 <button
                   onClick={() =>
-                    navigate(`/post/${selectedMarker.postData._id}`)
+                    navigate(`/post/${selectedMarker.postData.id}`)
                   }
                   className="w-full bg-primary text-on-primary py-2 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
                 >
@@ -608,6 +833,88 @@ const Map = () => {
                 View Profile
               </button>
             )}
+          </div>
+        </div>
+      )}
+      {showSearch && (
+        <LocationAutocomplete
+          onLocationSelect={handleLocationSelect}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
+      {/* Graffiti Modal */}
+      {shoutoutModalVisible && (
+        <div className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4">
+          <div className="bg-bg-surface w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-pink-500/20">
+            <div className="p-6 border-b border-bg-surface flex justify-between items-center bg-gradient-to-r from-pink-500/10 to-purple-500/10">
+              <div className="flex items-center gap-3">
+                <Palette className="text-pink-500" size={24} />
+                <h3 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                  Add Graffiti
+                </h3>
+              </div>
+              <button
+                onClick={() => setShoutoutModalVisible(false)}
+                className="hover:bg-bg-primary p-2 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Your Message
+                </label>
+                <textarea
+                  value={shoutoutContent}
+                  onChange={(e) => setShoutoutContent(e.target.value)}
+                  placeholder="What's on your mind? 🌈"
+                  rows={4}
+                  className="w-full bg-bg-primary rounded-2xl p-4 outline-none focus:ring-2 focus:ring-pink-500/50 transition-all font-semibold resize-none text-lg"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setShoutoutModalVisible(false);
+                    setIsSelectingLocation(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold bg-pink-500/10 text-pink-600 border border-pink-500/20 hover:bg-pink-500/20 transition-all"
+                >
+                  <MapPin size={20} />
+                  {selectedLocation
+                    ? "Change Location"
+                    : "Tap on Map to Select Location"}
+                </button>
+
+                {selectedLocation && (
+                  <div className="flex items-center gap-2 p-3 bg-green-500/5 rounded-xl border border-green-500/10 text-xs text-green-600 font-semibold justify-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
+                    <span>Location selected on map</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-pink-500/5 rounded-xl border border-pink-500/10 text-xs text-pink-600 font-semibold">
+                <Pin size={14} />
+                <span>
+                  {" "}
+                  This will be pinned to your current or selected location.
+                </span>
+              </div>
+
+              <button
+                onClick={handleCreateShoutout}
+                disabled={loading || !shoutoutContent.trim()}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-pink-500/20 transition-all disabled:opacity-50"
+              >
+                {loading ? "Creating..." : "Drop Graffiti 🎨"}
+              </button>
+            </div>
           </div>
         </div>
       )}
