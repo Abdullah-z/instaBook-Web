@@ -28,8 +28,15 @@ const CallOverlay = () => {
     isMicEnabled,
     isSpeakerEnabled,
     isVideoEnabled,
+    isMicBoosted,
+    isJoining,
     callDuration,
     playTestSound,
+    resetMic,
+    toggleMicBoost,
+    microphones,
+    selectedMicId,
+    setMicrophone,
   } = useContext(VoiceCallContext);
 
   const nodeRef = useRef(null);
@@ -73,10 +80,15 @@ const CallOverlay = () => {
               <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
               <img
                 src={
-                  callState.caller?.avatar || "https://via.placeholder.com/96"
+                  callState.caller?.avatar && callState.caller.avatar !== ""
+                    ? callState.caller.avatar
+                    : "https://via.placeholder.com/96"
                 }
-                alt={callState.caller?.username}
+                alt={callState.caller?.username || "Caller"}
                 className="w-24 h-24 rounded-full border-4 border-primary relative z-10 object-cover"
+                onError={(e) => {
+                  e.target.src = "https://via.placeholder.com/96";
+                }}
               />
             </div>
 
@@ -216,6 +228,19 @@ const CallOverlay = () => {
                 </button>
 
                 <button
+                  onClick={toggleMicBoost}
+                  className={`p-3 rounded-xl flex items-center justify-center transition-colors ${isMicBoosted ? "bg-amber-500 text-white" : "bg-zinc-800 text-white hover:bg-zinc-700"}`}
+                  title={
+                    isMicBoosted ? "Disable Mic Boost" : "Enable Mic Boost"
+                  }
+                >
+                  <Volume2
+                    size={20}
+                    className={isMicBoosted ? "animate-pulse" : ""}
+                  />
+                </button>
+
+                <button
                   onClick={leaveCall}
                   className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-xl flex items-center justify-center transition-colors col-span-1"
                 >
@@ -233,7 +258,11 @@ const CallOverlay = () => {
                         remoteUsers.forEach((u) => {
                           if (u.audioTrack) {
                             u.audioTrack.stop();
-                            u.audioTrack.play().catch((e) => console.error(e));
+                            try {
+                              u.audioTrack.play();
+                            } catch (e) {
+                              console.error(e);
+                            }
                           }
                         });
                         toast.success("Audio system reset");
@@ -246,15 +275,62 @@ const CallOverlay = () => {
                     Can't hear? Click to fix audio
                   </button>
                   <button
+                    onClick={resetMic}
+                    className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg transition-colors border border-zinc-700/50 font-medium"
+                  >
+                    Mic not working? Reset Microphone
+                  </button>
+                  <button
                     onClick={playTestSound}
                     className="w-full py-1 text-zinc-500 text-[10px] hover:text-zinc-400 decoration-dotted underline"
                   >
                     Click to test if browser audio works at all
                   </button>
+
+                  {/* Microphone Selection */}
+                  {microphones.length > 0 && (
+                    <div className="pt-2 border-t border-zinc-800/50">
+                      <label className="text-[10px] text-zinc-500 block mb-1 px-1">
+                        Select Microphone Source:
+                      </label>
+                      <select
+                        value={selectedMicId}
+                        onChange={(e) => setMicrophone(e.target.value)}
+                        className="w-full bg-zinc-900 text-zinc-300 text-[11px] rounded px-2 py-1 outline-none border border-zinc-700/50 hover:border-zinc-600 transition-colors"
+                      >
+                        {microphones.map((mic) => (
+                          <option key={mic.deviceId} value={mic.deviceId}>
+                            {mic.label ||
+                              `Microphone ${mic.deviceId.slice(0, 5)}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </Draggable>
+        </div>
+      )}
+
+      {/* Joining Loading Overlay */}
+      {isJoining && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-md pointer-events-auto z-[10000]">
+          <div className="flex flex-col items-center gap-6 bg-zinc-800/90 p-10 rounded-3xl border border-zinc-700 shadow-2xl animate-in zoom-in duration-300">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
+              <div className="absolute inset-0 w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div className="text-center space-y-2">
+              <span className="text-white text-xl font-bold block">
+                Connecting...
+              </span>
+              <span className="text-zinc-400 text-sm">
+                Setting up secure media channel
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>
