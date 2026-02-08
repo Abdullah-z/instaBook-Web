@@ -26,6 +26,7 @@ const CreatePost = ({ onPostCreated }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("text"); // 'text', 'poll'
   const [isHD, setIsHD] = useState(false);
+  const [postType, setPostType] = useState("feed"); // 'feed', 'story', 'both'
 
   // Styles
   const [viewStyleOptions, setViewStyleOptions] = useState(false);
@@ -244,6 +245,7 @@ const CreatePost = ({ onPostCreated }) => {
           fontWeight: "bold",
         },
         isHD,
+        postType,
       };
 
       if (activeTab === "poll") {
@@ -268,6 +270,7 @@ const CreatePost = ({ onPostCreated }) => {
       setLocationCoords(null);
       setShowLocationInput(false);
       setActiveTab("text");
+      setPostType("feed");
       setViewStyleOptions(false);
     } catch (err) {
       console.error(err);
@@ -392,6 +395,31 @@ const CreatePost = ({ onPostCreated }) => {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Post Type Selector */}
+      <div className="flex flex-col gap-3 py-2 border-t border-bg-primary/30 mt-2">
+        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+          Post Distribution
+        </label>
+        <div className="flex gap-2">
+          {["feed", "story", "both"].map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setPostType(type)}
+              className={`flex-1 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all
+                ${
+                  postType === type
+                    ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105"
+                    : "bg-bg-primary/50 text-text-secondary hover:bg-bg-primary"
+                }
+              `}
+            >
+              {type}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -683,9 +711,9 @@ const CreatePost = ({ onPostCreated }) => {
               className="group-hover:scale-110 transition-transform"
             />
           </button>
-
           {/* HD Toggle */}
           <button
+            type="button"
             onClick={() => setIsHD(!isHD)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl transition-all font-black text-[10px] shrink-0
               ${isHD ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-bg-primary/50 text-text-secondary hover:bg-bg-primary"}
