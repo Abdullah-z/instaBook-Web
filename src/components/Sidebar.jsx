@@ -10,6 +10,9 @@ import {
   PlusSquare,
   Search,
   MapPin,
+  Calendar, // Add Calendar import
+  ShoppingBag,
+  PlaySquare,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useContext } from "react";
@@ -26,8 +29,11 @@ const Sidebar = () => {
     { icon: Search, label: "Search", path: "/search" },
     { icon: Compass, label: "Explore", path: "/search" },
     { icon: MapPin, label: "Map", path: "/map" },
+    { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
+    { icon: PlaySquare, label: "Reels", path: "/reels" },
+    { icon: Calendar, label: "Events", path: "/events" }, // Add Events link
     { icon: Bell, label: "Notifications", path: "/notifications" },
-    { icon: MessageSquare, label: "Messages", path: "/messages" },
+    { icon: MessageSquare, label: "Messenger", path: "/messages" },
     { icon: User, label: "Profile", path: `/profile/${user?._id}` },
   ];
 
@@ -35,11 +41,15 @@ const Sidebar = () => {
     <aside className="fixed left-0 top-0 h-screen w-20 lg:w-64 border-r border-bg-surface bg-bg-primary flex flex-col p-4 transition-all duration-300">
       {/* Logo */}
       <div className="flex items-center gap-3 px-2 mb-10">
-        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-          <span className="text-on-primary font-black text-xl">P</span>
+        <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center  shrink-0">
+          <img
+            src="/circles.png"
+            alt="Circles Logo"
+            className="w-full h-full object-contain"
+          />
         </div>
-        <span className="hidden lg:block font-extrabold text-2xl tracking-tighter">
-          Prism
+        <span className="hidden lg:block font-extrabold text-3xl tracking-tighter">
+          Circles
         </span>
       </div>
 
@@ -73,13 +83,13 @@ const Sidebar = () => {
           </NavLink>
         ))}
 
-        <button className="flex items-center gap-4 p-3 rounded-2xl hover:bg-bg-surface text-text-secondary hover:text-text-primary w-full transition-all group">
+        {/* <button className="flex items-center gap-4 p-3 rounded-2xl hover:bg-bg-surface text-text-secondary hover:text-text-primary w-full transition-all group">
           <PlusSquare
             size={26}
             className="group-hover:scale-110 transition-transform"
           />
           <span className="hidden lg:block text-lg">Create</span>
-        </button>
+        </button> */}
       </nav>
 
       {/* Profile & Logout */}
