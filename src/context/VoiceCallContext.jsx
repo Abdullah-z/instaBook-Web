@@ -57,6 +57,10 @@ export const VoiceCallProvider = ({ children }) => {
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(true);
+  const [isMicBoosted, setIsMicBoosted] = useState(false); // DEFAULT TO OFF to avoid clipping
+  const [microphones, setMicrophones] = useState([]);
+  const [selectedMicId, setSelectedMicId] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
   const audioRef = useRef(new Audio("/sounds/ringtone.mp3"));
@@ -71,6 +75,42 @@ export const VoiceCallProvider = ({ children }) => {
   };
 
   // Fetch Token (Same as mobile logic)
+  // --- Device Management ---
+  const updateMicDevices = useCallback(async () => {
+    try {
+      const devices = await AgoraRTC.getMicrophones();
+      setMicrophones(devices);
+      console.log(`[VoiceCall] Found ${devices.length} microphones:`, devices);
+      if (devices.length > 0 && !selectedMicId) {
+        setSelectedMicId(devices[0].deviceId);
+      }
+    } catch (err) {
+      console.error("[VoiceCall] Failed to get microphones:", err);
+    }
+  }, [selectedMicId]);
+
+  useEffect(() => {
+    updateMicDevices();
+    AgoraRTC.onMicrophoneChanged = (info) => {
+      console.log("[VoiceCall] Microphone device changed:", info);
+      updateMicDevices();
+    };
+  }, [updateMicDevices]);
+
+  const setMicrophone = async (deviceId) => {
+    console.log(`[VoiceCall] Switching to microphone: ${deviceId}`);
+    setSelectedMicId(deviceId);
+    if (localAudioTrack) {
+      try {
+        await localAudioTrack.setDevice(deviceId);
+        toast.success("Microphone updated");
+      } catch (err) {
+        console.error("[VoiceCall] Failed to set microphone device:", err);
+        toast.error("Failed to switch microphone");
+      }
+    }
+  };
+
   const fetchAgoraToken = async (channelName, uid) => {
     try {
       // Direct hardcoded URL to match mobile's success
@@ -183,6 +223,13 @@ export const VoiceCallProvider = ({ children }) => {
 
   // --- Agora Setup (Listeners) ---
   useEffect(() => {
+    // Only enable if not already active to avoid warnings
+    try {
+      client.current.enableAudioVolumeIndicator();
+    } catch (e) {
+      console.warn("[VoiceCall] Volume indicator already enabled", e);
+    }
+
     const handleUserPublished = async (user, mediaType) => {
       console.log(
         `[VoiceCall] Event: user-published | UID: ${user.uid} | Media: ${mediaType}`,
@@ -192,15 +239,20 @@ export const VoiceCallProvider = ({ children }) => {
         console.log(`[VoiceCall] Subscribed to ${user.uid} (${mediaType})`);
 
         setRemoteUsers((prev) => {
-          // IMPORTANT: Do NOT shallow copy the user object! It breaks SDK methods.
-          // Instead, return a new array with the original user object to trigger re-renders.
           const filtered = prev.filter((u) => u.uid !== user.uid);
           return [...filtered, user];
         });
 
         if (mediaType === "audio") {
-          await user.audioTrack?.play();
-          console.log(`[VoiceCall] Success: Playing audio for ${user.uid}`);
+          try {
+            user.audioTrack?.play();
+            console.log(`[VoiceCall] Success: Playing audio for ${user.uid}`);
+          } catch (playbackError) {
+            console.error(
+              `[VoiceCall] Playback triggering error for ${user.uid}:`,
+              playbackError,
+            );
+          }
         }
       } catch (e) {
         console.error(
@@ -233,11 +285,43 @@ export const VoiceCallProvider = ({ children }) => {
       );
     };
 
+    const handleVolumeIndicator = (volumes) => {
+      volumes.forEach((volume) => {
+        if (volume.level > 5) {
+          const isLocal =
+            volume.uid === 0 || volume.uid === client.current?.uid;
+          console.log(
+            `[VoiceCall] ${isLocal ? "LOCAL MIC" : "REMOTE USER (" + volume.uid + ")"} Level: ${volume.level.toFixed(1)} ${isLocal && isMicBoosted ? "(BOOSTED 800%)" : ""}`,
+          );
+        }
+      });
+    };
+
+    const handlePublished = () => {
+      console.log(
+        `[VoiceCall] ✅ PUBLISHED: Local tracks successfully reached the server!`,
+      );
+    };
+
+    const handleUnpublished = () => {
+      console.log(
+        `[VoiceCall] ⚠️ UNPUBLISHED: Local tracks removed from server.`,
+      );
+    };
+
     client.current.on("user-published", handleUserPublished);
     client.current.on("user-unpublished", handleUserUnpublished);
     client.current.on("user-left", handleUserLeft);
     client.current.on("user-joined", handleUserJoined);
     client.current.on("connection-state-change", handleConnectionStateChange);
+    client.current.on("volume-indicator", handleVolumeIndicator);
+    client.current.on("published", handlePublished);
+    client.current.on("unpublished", handleUnpublished);
+    client.current.on("exception", (event) => {
+      console.warn(
+        `[VoiceCall] Agora SDK Exception: ${event.code} - ${event.msg}`,
+      );
+    });
 
     return () => {
       client.current.off("user-published", handleUserPublished);
@@ -248,6 +332,10 @@ export const VoiceCallProvider = ({ children }) => {
         "connection-state-change",
         handleConnectionStateChange,
       );
+      client.current.off("volume-indicator", handleVolumeIndicator);
+      client.current.off("published", handlePublished);
+      client.current.off("unpublished", handleUnpublished);
+      client.current.off("exception");
     };
   }, []); // Run once on mount
 
@@ -260,9 +348,11 @@ export const VoiceCallProvider = ({ children }) => {
       );
       remoteUsers.forEach((u) => {
         if (u.audioTrack && !u.audioTrack.isPlaying) {
-          u.audioTrack
-            .play()
-            .catch((e) => console.error("[VoiceCall] Auto-resume failed:", e));
+          try {
+            u.audioTrack.play();
+          } catch (e) {
+            console.error("[VoiceCall] Auto-resume failed:", e);
+          }
         }
       });
     };
@@ -375,6 +465,34 @@ export const VoiceCallProvider = ({ children }) => {
     };
   }, [socket, user, callState.inCall, leaveCall]);
 
+  // Cleanup on logout
+  useEffect(() => {
+    if (!user) {
+      if (callState.inCall || callState.incomingCall) {
+        leaveCall();
+      }
+    }
+  }, [user, leaveCall]);
+
+  // --- Transmission Tracing (Critical for Debugging) ---
+  useEffect(() => {
+    let interval;
+    if (callState.joined && localAudioTrack) {
+      interval = setInterval(() => {
+        const stats = client.current.getLocalAudioStats();
+        if (stats) {
+          console.log(
+            `[VoiceCall] AUDIO STATS: Sending ${(stats.sendBitrate / 1000).toFixed(1)} kbps | Delay: ${stats.sendDelay}ms`,
+          );
+          if (stats.sendBitrate === 0) {
+            console.warn("[VoiceCall] ⚠️ SILENCE: 0 kbps being transmitted!");
+          }
+        }
+      }, 5000); // Trace every 5 seconds
+    }
+    return () => clearInterval(interval);
+  }, [callState.joined, localAudioTrack]);
+
   // --- Call Timer ---
   useEffect(() => {
     let timer;
@@ -395,9 +513,11 @@ export const VoiceCallProvider = ({ children }) => {
       // Use random int UID like mobile
       const agoraUid = Math.floor(Math.random() * 100000);
 
+      setIsJoining(true);
       const tokenData = await fetchAgoraToken(channelName, agoraUid);
       if (!tokenData) {
         toast.error("Failed to generate call token");
+        setIsJoining(false);
         return;
       }
 
@@ -406,14 +526,32 @@ export const VoiceCallProvider = ({ children }) => {
       console.log(
         `[VoiceCall] Joining Agora: ${channelName}, AppID: ${appId}, UID: ${agoraUid}`,
       );
-      toast.info(`Joining channel: ${channelName}`);
 
       await client.current.join(appId, channelName, tokenData.token, agoraUid);
 
-      // Create and Publish Tracks
-      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      let videoTrack;
+      // Create and Publish Tracks with config aligned for mobile compatibility
+      console.log(
+        "[VoiceCall] Creating local tracks (with 800% gain boost)...",
+      );
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+        microphoneId: selectedMicId || undefined,
+        encoderConfig: "speech_standard",
+        AEC: true,
+        ANS: true,
+        AGC: true,
+      });
 
+      audioTrack.on("track-ended", () => {
+        console.warn("[VoiceCall] ❌ Local audio track ended unexpectedly!");
+        toast.error("Microphone connection lost");
+      });
+
+      // Boost volume significantly (Agora supports 0-1000)
+      const initialVolume = isMicBoosted ? 100 : 100; // REVERTED: 800% caused clipping
+      console.log(`[VoiceCall] Setting initial volume to ${initialVolume}%`);
+      audioTrack.setVolume(initialVolume);
+
+      let videoTrack;
       if (isVideo) {
         videoTrack = await AgoraRTC.createCameraVideoTrack();
       }
@@ -421,6 +559,7 @@ export const VoiceCallProvider = ({ children }) => {
       setLocalAudioTrack(audioTrack);
       setLocalVideoTrack(videoTrack);
 
+      console.log("[VoiceCall] Attempting to publish tracks...");
       if (isVideo && videoTrack) {
         await client.current.publish([audioTrack, videoTrack]);
         setIsVideoEnabled(true);
@@ -429,19 +568,34 @@ export const VoiceCallProvider = ({ children }) => {
         setIsVideoEnabled(false);
       }
 
+      console.log(
+        `[VoiceCall] Publish call resolved. Audio enabled: ${audioTrack.enabled}`,
+      );
+
+      // Check tracks on client
+      const publishedTracks = client.current.localTracks;
+      console.log(
+        `[VoiceCall] Client local tracks count: ${publishedTracks.length}`,
+      );
+
+      // Explicitly enable after publication to be absolutely sure
+      await audioTrack.setEnabled(true);
+      if (audioTrack.setMuted) await audioTrack.setMuted(false);
+
       setIsMicEnabled(true);
       console.log(
         `[VoiceCall] Successfully published tracks. Current remote users:`,
         client.current.remoteUsers.length,
       );
 
-      // Force set internal remote users immediately just in case
-      if (client.current.remoteUsers.length > 0) {
-        setRemoteUsers([...client.current.remoteUsers]);
-      }
+      setRemoteUsers([...client.current.remoteUsers]);
 
+      setLocalAudioTrack(audioTrack);
+      setIsMicEnabled(true);
+      setIsJoining(false);
       toast.success("Connected to call");
     } catch (err) {
+      setIsJoining(false);
       // Handle the case where the join was aborted (e.g. by leaveCall)
       if (
         err.code === "OPERATION_ABORTED" ||
@@ -580,6 +734,15 @@ export const VoiceCallProvider = ({ children }) => {
     setIsSpeakerEnabled(newState);
   };
 
+  const toggleMicBoost = () => {
+    const newState = !isMicBoosted;
+    setIsMicBoosted(newState);
+    if (localAudioTrack) {
+      localAudioTrack.setVolume(newState ? 800 : 100);
+      toast.info(`Mic boost ${newState ? "enabled (800%)" : "disabled"}`);
+    }
+  };
+
   const playTestSound = () => {
     console.log("[VoiceCall] Playing test sound...");
     const audio = new Audio("/sounds/notification.mp3");
@@ -587,6 +750,51 @@ export const VoiceCallProvider = ({ children }) => {
     audio
       .play()
       .catch((e) => console.error("[VoiceCall] Test sound failed:", e));
+  };
+
+  const resetMic = async () => {
+    console.log("[VoiceCall] Resetting/Re-publishing Microphone...");
+    try {
+      if (localAudioTrack) {
+        console.log("[VoiceCall] Unpublishing old track...");
+        await client.current.unpublish([localAudioTrack]);
+        localAudioTrack.stop();
+        localAudioTrack.close();
+      }
+
+      console.log("[VoiceCall] Creating new speech_standard track...");
+      const newTrack = await AgoraRTC.createMicrophoneAudioTrack({
+        microphoneId: selectedMicId || undefined,
+        encoderConfig: "speech_standard",
+        AEC: true,
+        ANS: true,
+        AGC: true,
+      });
+
+      newTrack.on("track-ended", () => {
+        console.warn("[VoiceCall] ❌ Local audio track ended unexpectedly!");
+      });
+
+      const initialVolume = isMicBoosted ? 100 : 100;
+      newTrack.setVolume(initialVolume);
+
+      console.log("[VoiceCall] Publishing new track...");
+      await client.current.publish([newTrack]);
+
+      console.log(
+        `[VoiceCall] Re-publish resolved. Enabled: ${newTrack.enabled}, Published: ${newTrack._published}`,
+      );
+
+      await newTrack.setEnabled(true);
+      if (newTrack.setMuted) await newTrack.setMuted(false);
+
+      setLocalAudioTrack(newTrack);
+      setIsMicEnabled(true);
+      toast.success("Outgoing audio re-published");
+    } catch (err) {
+      console.error("[VoiceCall] Failed to reset mic:", err);
+      toast.error("Microphone reset failed");
+    }
   };
 
   return (
@@ -607,8 +815,15 @@ export const VoiceCallProvider = ({ children }) => {
         isMicEnabled,
         isVideoEnabled,
         isSpeakerEnabled,
+        isMicBoosted,
+        isJoining,
         callDuration,
         playTestSound,
+        resetMic,
+        toggleMicBoost,
+        microphones,
+        selectedMicId,
+        setMicrophone,
       }}
     >
       {children}
