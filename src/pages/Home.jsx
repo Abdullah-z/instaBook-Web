@@ -177,7 +177,7 @@ const Home = () => {
 
               {!hasMore && posts.length > 0 && (
                 <p className="text-center text-text-secondary text-sm py-10 font-medium">
-                  You've reached the end of the Prism. ✨
+                  You've reached the end of the Circles. ✨
                 </p>
               )}
             </div>
@@ -225,7 +225,7 @@ const Home = () => {
               </div>
             </div>
             <div className="px-6 text-xs text-text-secondary">
-              <p>&copy; 2026 Prism Social. All rights reserved.</p>
+              <p>&copy; 2026 Circles Social. All rights reserved.</p>
             </div>
           </aside>
         </div>
