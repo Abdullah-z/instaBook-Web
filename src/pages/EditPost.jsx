@@ -41,6 +41,7 @@ const EditPost = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isHD, setIsHD] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   // Mentions
   const [mentionQuery, setMentionQuery] = useState("");
@@ -402,14 +403,33 @@ const EditPost = () => {
                   GPS
                 </button>
               </div>
-              <LocationAutocomplete
-                onLocationSelect={(name, coords) => {
-                  setLocationName(name);
-                  setLocationCoords(coords);
-                }}
-                initialValue={locationName}
-                placeholder="Where was this?"
-              />
+              <div
+                onClick={() => setShowLocationPicker(true)}
+                className="w-full bg-white dark:bg-bg-surface px-4 py-2 rounded-xl text-sm border border-bg-primary cursor-pointer hover:border-primary transition-all flex items-center justify-between"
+              >
+                <span
+                  className={
+                    locationName
+                      ? "text-text-primary"
+                      : "text-text-secondary/50"
+                  }
+                >
+                  {locationName || "Where was this?"}
+                </span>
+                <MapPin size={14} className="text-text-secondary" />
+              </div>
+
+              {showLocationPicker && (
+                <LocationAutocomplete
+                  onLocationSelect={(loc) => {
+                    setLocationName(loc.description);
+                    setLocationCoords(loc.coordinates);
+                    setShowLocationPicker(false);
+                  }}
+                  onClose={() => setShowLocationPicker(false)}
+                  initialValue={locationName}
+                />
+              )}
             </div>
             <div className="flex-1 flex flex-col gap-2 bg-bg-primary/30 p-4 rounded-3xl border border-bg-primary">
               <div className="flex items-center gap-2 text-red-500 mb-1">
