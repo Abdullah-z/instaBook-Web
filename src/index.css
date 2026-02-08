@@ -26,6 +26,14 @@
     sans-serif;
 }
 
+@utility snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+@utility snap-start {
+  scroll-snap-align: start;
+}
+
 @utility no-scrollbar {
   ::-webkit-scrollbar {
     display: none;
@@ -68,6 +76,23 @@
 
 .custom-marker.shoutout {
   background: linear-gradient(135deg, #ff00cc 0%, #333399 100%) !important;
+  border-color: #ff00cc !important;
+  animation: marker-float 3s ease-in-out infinite;
+}
+
+.custom-marker.event {
+  background: #e4405f !important;
+  border-color: #ffffff !important;
+}
+
+@keyframes marker-float {
+  0%,
+  100% {
+    transform: rotate(-45deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-45deg) translateY(-5px);
+  }
 }
 
 .marker-avatar {
@@ -127,6 +152,27 @@
     transform: translate(-50%, -50%) scale(1.5);
     opacity: 0;
   }
+}
+
+.marker-pin-pulse {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+.custom-marker.focused .marker-pin-pulse {
+  background-color: rgba(255, 0, 0, 0.2);
+  animation: pulse-dot 2s infinite;
+}
+
+.custom-marker.shoutout .marker-pin-pulse {
+  background-color: rgba(255, 0, 204, 0.2);
+  animation: pulse-dot 2.5s infinite;
 }
 
 /* Marker Cluster Styles */
