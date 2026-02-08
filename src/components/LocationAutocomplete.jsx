@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapPin, X, Loader2 } from "lucide-react";
 
-const LocationAutocomplete = ({ onLocationSelect, onClose }) => {
-  const [query, setQuery] = useState("");
+const LocationAutocomplete = ({
+  onLocationSelect,
+  onClose,
+  initialValue = "",
+}) => {
+  const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef(null);
@@ -56,7 +60,7 @@ const LocationAutocomplete = ({ onLocationSelect, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[3000] p-4">
       <div className="bg-bg-primary w-full max-w-md rounded-2xl shadow-2xl border border-bg-surface overflow-hidden">
         <div className="p-4 border-b border-bg-surface flex justify-between items-center">
           <h3 className="font-bold flex items-center gap-2">
