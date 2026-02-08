@@ -21,19 +21,19 @@ export const getSharedLocationsAPI = async (
   lat,
   lon,
   radius = 50,
-  limit,
-  skip,
+  targetUserId,
+  timePeriod,
   typeFilter,
   audienceFilter,
 ) => {
   const params = {
-    latitude: lat,
-    longitude: lon,
+    lat,
+    lon,
     radius,
   };
 
-  if (limit) params.limit = limit;
-  if (skip) params.skip = skip;
+  if (targetUserId) params.targetUserId = targetUserId;
+  if (timePeriod) params.timePeriod = timePeriod;
   if (typeFilter) params.typeFilter = typeFilter;
   if (audienceFilter) params.audienceFilter = audienceFilter;
 
