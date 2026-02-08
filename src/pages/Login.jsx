@@ -108,7 +108,7 @@ const Login = () => {
               Best Social App to Make New Friends
             </h1>
             <p className="text-text-secondary text-lg">
-              With Prism you will find new friends from various countries and
+              With Circles you will find new friends from various countries and
               regions of the world
             </p>
 
