@@ -23,6 +23,7 @@ import CommentModal from "./CommentModal";
 import RepostModal from "./RepostModal";
 import HashtagText from "./HashtagText";
 import YouTubePlayer from "./YouTubePlayer";
+import ImageView from "./ImageView";
 
 const getYoutubeId = (url) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -58,6 +59,7 @@ const PostCard = ({ post, onPostDelete }) => {
     currentUser?.saved?.includes(post._id) ? true : false,
   );
   const [poll, setPoll] = useState(post.poll_question ? post : null);
+  const [viewingImage, setViewingImage] = useState(null);
   const youtubeId = post.content ? getYoutubeId(post.content) : null;
 
   // Sync poll state when post prop changes
@@ -273,9 +275,9 @@ const PostCard = ({ post, onPostDelete }) => {
 
       {/* Post Content */}
       <div
-        className={`px-4 pb-3 flex flex-col ${post.background ? "aspect-video items-center justify-center text-center p-10 rounded-[2.5rem] mx-4 mb-4 shadow-xl mb-6 transition-all duration-700" : ""}`}
+        className={`px-4 pb-3 flex flex-col ${post.background && post.background !== "default" ? "aspect-video items-center justify-center text-center p-10 rounded-[2.5rem] mx-4 mb-4 shadow-xl mb-6 transition-all duration-700" : ""}`}
         style={
-          post.background
+          post.background && post.background !== "default"
             ? {
                 background:
                   POST_BACKGROUNDS_MAP[post.background] || post.background,
@@ -285,19 +287,17 @@ const PostCard = ({ post, onPostDelete }) => {
       >
         <div className="block">
           <p
-            className={`whitespace-pre-wrap ${post.background ? "text-2xl font-black text-white drop-shadow-lg" : "text-sm leading-relaxed text-text-primary"}`}
+            className={`whitespace-pre-wrap ${post.background && post.background !== "default" ? "text-2xl font-black drop-shadow-lg" : "text-sm leading-relaxed text-text-primary"}`}
             style={
               post.textStyle
                 ? {
                     ...post.textStyle,
                     color:
-                      !post.background &&
-                      (post.textStyle.color === "#000000" ||
-                        post.textStyle.color === "#000" ||
-                        post.textStyle.color === "#ffffff" ||
-                        post.textStyle.color === "#fff")
-                        ? undefined
-                        : post.textStyle.color,
+                      post.background &&
+                      post.background !== "default" &&
+                      !post.textStyle.color
+                        ? "#FFFFFF"
+                        : post.textStyle.color || undefined,
                   }
                 : {}
             }
@@ -442,8 +442,12 @@ const PostCard = ({ post, onPostDelete }) => {
                   ) : (
                     <img
                       src={img.url}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-zoom-in"
                       alt="post media"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewingImage(img.url);
+                      }}
                     />
                   )}
                 </div>
@@ -529,6 +533,12 @@ const PostCard = ({ post, onPostDelete }) => {
           />
         )}
       </AnimatePresence>
+
+      <ImageView
+        isOpen={!!viewingImage}
+        imageUrl={viewingImage}
+        onClose={() => setViewingImage(null)}
+      />
     </motion.article>
   );
 };
