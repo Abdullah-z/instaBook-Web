@@ -1,15 +1,22 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { AuthContext } from "./AuthContext";
 
 const FeedContext = createContext();
 
 export const FeedProvider = ({ children }) => {
+  const { user } = useContext(AuthContext);
   const [feedState, setFeedState] = useState({
     posts: [],
     page: 1,
     hasMore: true,
     scrollPosition: 0,
-    isLoaded: false, // Flag to check if we have initial data
+    isLoaded: false,
   });
+
+  // Reset feed when user changes or logs out
+  useEffect(() => {
+    resetFeed();
+  }, [user?._id]);
 
   const setPosts = (newPosts) => {
     setFeedState((prev) => ({ ...prev, posts: newPosts, isLoaded: true }));

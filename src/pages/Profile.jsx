@@ -19,6 +19,7 @@ import {
   List,
   Image as ImageIcon,
   Play,
+  LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "timeago.js";
@@ -32,7 +33,7 @@ import { toast } from "react-toastify";
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
 
   const [profileUser, setProfileUser] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -428,13 +429,22 @@ const Profile = () => {
                 {/* Actions */}
                 <div className="flex-1 flex flex-wrap gap-3 items-center justify-end">
                   {isOwner ? (
-                    <button
-                      onClick={() => setIsEditModalOpen(true)}
-                      className="px-6 py-3 bg-bg-primary hover:bg-bg-primary/80 rounded-2xl font-bold text-sm transition-all flex items-center gap-2 shadow-sm"
-                    >
-                      <Settings size={18} />
-                      Edit Profile
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="px-6 py-3 bg-bg-primary hover:bg-bg-primary/80 rounded-2xl font-bold text-sm transition-all flex items-center gap-2 shadow-sm"
+                      >
+                        <Settings size={18} />
+                        Edit Profile
+                      </button>
+                      <button
+                        onClick={() => navigate(`/user_map/${profileUser._id}`)}
+                        className="p-3 bg-bg-primary hover:bg-bg-primary/80 rounded-2xl transition-all shadow-sm"
+                        title="View Post Map"
+                      >
+                        <MapPin size={18} />
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button
@@ -459,6 +469,13 @@ const Profile = () => {
                       </button>
                       <button className="p-3 bg-bg-primary hover:bg-bg-primary/80 rounded-2xl transition-all shadow-sm">
                         <Mail size={18} />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/user_map/${profileUser._id}`)}
+                        className="p-3 bg-bg-primary hover:bg-bg-primary/80 rounded-2xl transition-all shadow-sm"
+                        title="View Post Map"
+                      >
+                        <MapPin size={18} />
                       </button>
                     </>
                   )}
@@ -497,12 +514,30 @@ const Profile = () => {
                               Share Profile
                             </button>
                             {isOwner && (
-                              <button
-                                onClick={() => navigate("/settings")}
-                                className="w-full text-left px-4 py-2 hover:bg-bg-primary/50 rounded-xl text-xs font-bold transition-all text-error"
-                              >
-                                Account Settings
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => navigate("/settings")}
+                                  className="w-full text-left px-4 py-2 hover:bg-bg-primary/50 rounded-xl text-xs font-bold transition-all text-text-primary"
+                                >
+                                  Account Settings
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        "Are you sure you want to logout?",
+                                      )
+                                    ) {
+                                      logout();
+                                      navigate("/login");
+                                    }
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-bg-primary/50 rounded-xl text-xs font-bold transition-all text-error flex items-center gap-2"
+                                >
+                                  <LogOut size={14} />
+                                  Logout
+                                </button>
+                              </>
                             )}
                           </motion.div>
                         </>

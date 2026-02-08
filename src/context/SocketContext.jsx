@@ -30,8 +30,13 @@ export const SocketProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    refreshNotifications();
-  }, [user]); // Refresh when user changes/logs in
+    if (user) {
+      refreshNotifications();
+    } else {
+      setNotifications([]); // Clear on logout
+      setOnlineUsers(new Set());
+    }
+  }, [user?._id]);
 
   useEffect(() => {
     if (user) {
