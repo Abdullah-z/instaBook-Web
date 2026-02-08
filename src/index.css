@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-surface: var(--bg-surface);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-error: #ea0606;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary transition-colors duration-300;
+  }
+}
+
+.font-prism {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+@utility no-scrollbar {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  font-family: inherit;
+}
+
+/* Dark mode map */
+.dark-map .leaflet-tile-pane {
+  filter: invert(90%) hue-rotate(180deg) brightness(0.8) contrast(1.2);
+}
+
+/* Custom Markers */
+.custom-marker-container {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-marker {
+  width: 44px;
+  height: 44px;
+  border-radius: 50% 50% 50% 0;
+  position: absolute;
+  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  margin: -22px 0 0 -22px;
+  border: 2px solid white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-marker.shoutout {
+  background: linear-gradient(135deg, #ff00cc 0%, #333399 100%) !important;
+}
+
+.marker-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  transform: rotate(45deg);
+}
+
+.marker-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  transform: rotate(45deg);
+}
+
+/* Blue Dot for User Location */
+.blue-dot-container {
+  background: transparent !important;
+  border: none !important;
+}
+
+.blue-dot {
+  width: 14px;
+  height: 14px;
+  background-color: #007aff;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.blue-dot-pulse {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(0, 122, 255, 0.2);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Marker Cluster Styles */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background-color: rgba(99, 102, 241, 0.6) !important;
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background-color: rgba(99, 102, 241, 0.8) !important;
+  color: white !important;
+  font-weight: bold !important;
+}
