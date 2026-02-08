@@ -54,7 +54,7 @@ const Sidebar = () => {
       </div>
 
       {/* Nav Links */}
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-2 overflow-y-auto no-scrollbar pb-4">
         {navItems.map((item) => (
           <NavLink
             key={item.label}
