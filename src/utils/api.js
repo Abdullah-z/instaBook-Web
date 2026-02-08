@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://instabook-server-production.up.railway.app/api",
+  baseURL: import.meta.env.VITE_API_URL + "/api",
   timeout: 15000,
 });
 

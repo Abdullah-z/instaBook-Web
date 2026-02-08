@@ -40,7 +40,7 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const socketUrl = "https://instabook-server-production.up.railway.app";
+      const socketUrl = import.meta.env.VITE_SOCKET_URL;
       const newSocket = io(socketUrl, {
         transports: ["websocket"],
         reconnection: true,
