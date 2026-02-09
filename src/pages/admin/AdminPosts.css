@@ -1,0 +1,151 @@
+.admin-posts {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.controls {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.filter-tabs {
+  background: var(--bg-surface);
+  padding: 0.25rem;
+  border-radius: 8px;
+  display: flex;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.filter-tab {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-tab.active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.post-preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.post-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.post-excerpt {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.avatar-xs {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.badge-image {
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+}
+
+.badge-text {
+  background: rgba(51, 154, 240, 0.1);
+  color: #339af0;
+}
+
+.post-modal-content {
+  background: var(--bg-surface);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.post-detail-view {
+  padding: 1.5rem;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.post-header .user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.post-header .username {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.post-header .time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.post-body p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.post-images {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.post-images img {
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  background: #000;
+}
+
+.post-footer {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #f0f0f0);
+}
+
+.post-footer .stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
