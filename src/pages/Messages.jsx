@@ -209,10 +209,7 @@ const Messages = () => {
 
   const getOtherUser = (conversation) => {
     if (!user) return null;
-    return (
-      conversation.recipients?.find((r) => r._id !== user._id) ||
-      conversation.recipients?.[0]
-    );
+    return conversation.recipients?.find((r) => r._id !== user._id);
   };
 
   const handleLocationSelect = async (loc) => {
