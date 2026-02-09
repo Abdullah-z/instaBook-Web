@@ -35,6 +35,13 @@ import MyEvents from "./pages/MyEvents";
 import UserPostMap from "./pages/UserPostMap";
 import Reels from "./pages/Reels";
 
+// Admin Imports
+import AdminLayout from "./components/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPosts from "./pages/admin/AdminPosts";
+import AdminReports from "./pages/admin/AdminReports";
+
 const PrivateRoute = ({ children }) => {
   const { token, loading } = useAuth();
   if (loading)
@@ -197,14 +204,6 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/user_map/:id"
-        element={
-          <PrivateRoute>
-            <UserPostMap />
-          </PrivateRoute>
-        }
-      />
-      <Route
         path="/reels"
         element={
           <PrivateRoute>
@@ -212,6 +211,30 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/user_map/:id"
+        element={
+          <PrivateRoute>
+            <UserPostMap />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Admin Routes */}
+      <Route
+        path="/admin"
+        element={
+          <PrivateRoute>
+            <AdminLayout />
+          </PrivateRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="posts" element={<AdminPosts />} />
+        <Route path="reports" element={<AdminReports />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
