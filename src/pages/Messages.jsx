@@ -159,8 +159,10 @@ const Messages = () => {
     e.preventDefault();
     if (!newMessage.trim() && images.length === 0) return;
 
+    const isGroup = currentChat.isGroup;
     const msgData = {
-      recipient: currentChat._id,
+      recipient: isGroup ? undefined : currentChat._id,
+      conversationId: isGroup ? currentChat._id : undefined,
       text: newMessage,
       media: [],
       createdAt: new Date().toISOString(),
@@ -215,10 +217,12 @@ const Messages = () => {
 
   const handleLocationSelect = async (loc) => {
     setShowLocation(false);
+    const isGroup = currentChat.isGroup;
     // Send location message
     try {
       const msgData = {
-        recipient: currentChat._id,
+        recipient: isGroup ? undefined : currentChat._id,
+        conversationId: isGroup ? currentChat._id : undefined,
         text: `📍 Shared Location: ${loc.description}`,
         location: {
           lat: loc.coordinates[1],
@@ -268,8 +272,10 @@ const Messages = () => {
 
           // Send location message
           try {
+            const isGroup = currentChat.isGroup;
             const msgData = {
-              recipient: currentChat._id,
+              recipient: isGroup ? undefined : currentChat._id,
+              conversationId: isGroup ? currentChat._id : undefined,
               text: `📍 Current Location`,
               location: {
                 lat: latitude,
