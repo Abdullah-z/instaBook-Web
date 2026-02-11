@@ -12,7 +12,10 @@ import {
   ArrowLeft,
   MapPin,
   Navigation,
+  Plus, // Add Plus icon
 } from "lucide-react";
+import CreateGroupModal from "../components/CreateGroupModal";
+import GroupInfoModal from "../components/GroupInfoModal";
 import Sidebar from "../components/Sidebar";
 import API from "../utils/api";
 import { useAuth } from "../hooks/useAuth";
@@ -46,7 +49,10 @@ const Messages = () => {
   const [images, setImages] = useState([]);
   const [isHD, setIsHD] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
+
   const [showLocationMenu, setShowLocationMenu] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   const scrollRef = useRef();
   const localVideoRef = useRef();
@@ -55,26 +61,31 @@ const Messages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedUserId = searchParams.get("id");
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const res = await API.get("/conversations?limit=50");
-        setConversations(res.data.conversations || []);
+  const fetchConversations = async () => {
+    try {
+      const res = await API.get("/conversations?limit=50");
+      setConversations(res.data.conversations || []);
 
-        // If ID in URL, find or fetch that user to start chat
-        if (selectedUserId) {
-          const existingConv = res.data.conversations.find((c) => {
-            const other = c.recipients.find((r) => r._id !== user._id);
-            return other?._id === selectedUserId;
-          });
+      // If ID in URL, find or fetch that user to start chat
+      if (selectedUserId) {
+        const existingConv = res.data.conversations.find((c) => {
+          if (c.isGroup) return c._id === selectedUserId;
+          const other = c.recipients.find((r) => r._id !== user._id);
+          return other?._id === selectedUserId;
+        });
 
-          if (existingConv) {
+        if (existingConv) {
+          if (existingConv.isGroup) {
+            setCurrentChat(existingConv);
+          } else {
             const other = existingConv.recipients.find(
               (r) => r._id !== user._id,
             );
             setCurrentChat(other);
-          } else {
-            // Fetch user info if not in conversations list
+          }
+        } else {
+          // Fetch user info if not in conversations list (ONLY for users, not groups)
+          if (selectedUserId.length === 24) {
             try {
               const userRes = await API.get(`/user/${selectedUserId}`);
               setCurrentChat(userRes.data.user);
@@ -83,13 +94,15 @@ const Messages = () => {
             }
           }
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (user) fetchConversations();
   }, [user, selectedUserId]);
 
@@ -120,7 +133,7 @@ const Messages = () => {
           const other = c.recipients.find((r) => r._id !== user._id);
           return (
             other?._id === (msg.sender._id || msg.sender) ||
-            other?._id === (msg.recipient._id || msg.recipient)
+            other?._id === (msg.recipient?._id || msg.recipient)
           );
         });
 
@@ -136,13 +149,16 @@ const Messages = () => {
       });
 
       // If chat is open, append message
-      if (
-        currentChat &&
-        (msg.sender._id === currentChat._id ||
-          msg.recipient._id === currentChat._id)
-      ) {
-        setMessages((prev) => [...prev, msg]);
-        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+      if (currentChat) {
+        const isGroupMessage = msg.conversation && currentChat.isGroup;
+        const isOneOnOneMessage =
+          msg.sender._id === currentChat._id ||
+          msg.recipient?._id === currentChat._id;
+
+        if (isGroupMessage || isOneOnOneMessage) {
+          setMessages((prev) => [...prev, msg]);
+          scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
       }
     };
 
@@ -344,13 +360,40 @@ const Messages = () => {
         />
       )}
 
+      {showCreateGroup && (
+        <CreateGroupModal
+          onClose={() => setShowCreateGroup(false)}
+          onGroupCreated={fetchConversations}
+        />
+      )}
+
+      {showGroupInfo && currentChat && (
+        <GroupInfoModal
+          chat={currentChat}
+          onClose={() => setShowGroupInfo(false)}
+          onUpdate={(updatedChat) => {
+            setCurrentChat(updatedChat);
+            setConversations((prev) =>
+              prev.map((c) => (c._id === updatedChat._id ? updatedChat : c)),
+            );
+          }}
+        />
+      )}
+
       <main className="lg:pl-64 flex-1 flex h-screen overflow-hidden">
         {/* Chat List (Sidebar on page) */}
         <div
           className={`w-full lg:w-96 border-r border-bg-surface flex flex-col bg-bg-primary ${currentChat ? "hidden lg:flex" : "flex"}`}
         >
-          <div className="p-4 border-b border-bg-surface">
+          <div className="p-4 border-b border-bg-surface flex justify-between items-center">
             <h1 className="text-2xl font-black tracking-tight">Messages</h1>
+            <button
+              onClick={() => setShowCreateGroup(true)}
+              className="p-2 hover:bg-bg-surface rounded-full transition-colors text-primary"
+              title="Create Group"
+            >
+              <Plus size={24} />
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -368,16 +411,24 @@ const Messages = () => {
                 const other = getOtherUser(conv);
                 if (!other && !conv.isGroup) return null;
 
+                const isAI =
+                  other?.role === "ai_assistant" ||
+                  other?.username === "ai_assistant";
                 const displayName = conv.isGroup
                   ? conv.groupName
-                  : other.username;
+                  : isAI
+                    ? "AI Assistant ✨"
+                    : other.username;
                 const displayAvatar = conv.isGroup
                   ? conv.groupAvatar
-                  : other.avatar;
+                  : isAI
+                    ? "https://static.vecteezy.com/system/resources/previews/055/687/055/non_2x/rectangle-gemini-google-icon-symbol-logo-free-png.png"
+                    : other.avatar;
                 const isActive = conv.isGroup
                   ? currentChat?._id === conv._id
                   : currentChat?._id === other._id;
-                const isOnline = !conv.isGroup && onlineUsers.has(other._id);
+                const isOnline =
+                  !conv.isGroup && (isAI ? true : onlineUsers.has(other._id));
 
                 return (
                   <div
@@ -391,18 +442,32 @@ const Messages = () => {
                     className={`flex items-center gap-4 p-4 hover:bg-bg-surface cursor-pointer transition-colors ${isActive ? "bg-bg-surface border-l-4 border-primary" : ""}`}
                   >
                     <div className="relative">
-                      <img
-                        src={displayAvatar || "https://picsum.photos/50"}
-                        alt={displayName}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
+                      <div
+                        className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center ${isAI ? "bg-white border border-primary/20 p-2" : ""}`}
+                      >
+                        <img
+                          src={displayAvatar || "https://picsum.photos/50"}
+                          alt={displayName}
+                          className={
+                            isAI
+                              ? "w-full h-full object-contain"
+                              : "w-full h-full object-cover"
+                          }
+                        />
+                      </div>
                       {isOnline && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-bg-primary"></div>
+                        <div
+                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-bg-primary ${isAI ? "bg-purple-500" : "bg-green-500"}`}
+                        ></div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline">
-                        <h3 className="font-bold truncate">{displayName}</h3>
+                        <h3
+                          className={`font-bold truncate ${isAI ? "text-primary" : ""}`}
+                        >
+                          {displayName}
+                        </h3>
                         <span className="text-xs text-text-secondary whitespace-nowrap">
                           {format(conv.updatedAt)}
                         </span>
@@ -447,35 +512,62 @@ const Messages = () => {
                     <ArrowLeft />
                   </button>
                   <div className="relative">
-                    <img
-                      src={
-                        (currentChat.isGroup
-                          ? currentChat.groupAvatar
-                          : currentChat.avatar) || "https://picsum.photos/50"
-                      }
-                      alt={
-                        currentChat.isGroup
-                          ? currentChat.groupName
-                          : currentChat.username
-                      }
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
+                    <div
+                      className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center ${currentChat.role === "ai_assistant" || currentChat.username === "ai_assistant" ? "bg-white border border-primary/20 p-1.5" : ""}`}
+                    >
+                      <img
+                        src={
+                          (currentChat.isGroup
+                            ? currentChat.groupAvatar
+                            : currentChat.role === "ai_assistant" ||
+                                currentChat.username === "ai_assistant"
+                              ? "https://static.vecteezy.com/system/resources/previews/055/687/055/non_2x/rectangle-gemini-google-icon-symbol-logo-free-png.png"
+                              : currentChat.avatar) ||
+                          "https://picsum.photos/50"
+                        }
+                        alt={
+                          currentChat.isGroup
+                            ? currentChat.groupName
+                            : currentChat.username
+                        }
+                        className={
+                          currentChat.role === "ai_assistant" ||
+                          currentChat.username === "ai_assistant"
+                            ? "w-full h-full object-contain"
+                            : "w-full h-full object-cover"
+                        }
+                      />
+                    </div>
                     {!currentChat.isGroup &&
-                      onlineUsers.has(currentChat._id) && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-bg-primary"></div>
+                      (currentChat.role === "ai_assistant" ||
+                        currentChat.username === "ai_assistant" ||
+                        onlineUsers.has(currentChat._id)) && (
+                        <div
+                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-bg-primary ${currentChat.role === "ai_assistant" || currentChat.username === "ai_assistant" ? "bg-purple-500" : "bg-green-500"}`}
+                        ></div>
                       )}
                   </div>
                   <div>
-                    <h3 className="font-bold">
+                    <h3
+                      className={`font-bold ${currentChat.role === "ai_assistant" || currentChat.username === "ai_assistant" ? "text-primary" : ""}`}
+                    >
                       {currentChat.isGroup
                         ? currentChat.groupName
-                        : currentChat.username}
+                        : currentChat.role === "ai_assistant" ||
+                            currentChat.username === "ai_assistant"
+                          ? "AI Assistant ✨"
+                          : currentChat.username}
                     </h3>
                     <span className="text-xs text-text-secondary">
                       {currentChat.isGroup
                         ? `${currentChat.recipients?.length || 0} members`
-                        : onlineUsers.has(currentChat._id)
-                          ? "Active now"
+                        : currentChat.role === "ai_assistant" ||
+                            currentChat.username === "ai_assistant" ||
+                            onlineUsers.has(currentChat._id)
+                          ? currentChat.role === "ai_assistant" ||
+                            currentChat.username === "ai_assistant"
+                            ? "Always online"
+                            : "Active now"
                           : "Offline"}
                     </span>
                   </div>
@@ -493,7 +585,12 @@ const Messages = () => {
                   >
                     <Video size={20} />
                   </button>
-                  <button className="p-2 hover:bg-bg-surface rounded-full transition-colors">
+                  <button
+                    onClick={() => {
+                      if (currentChat.isGroup) setShowGroupInfo(true);
+                    }}
+                    className={`p-2 hover:bg-bg-surface rounded-full transition-colors ${!currentChat.isGroup ? "opacity-50" : "hover:bg-bg-surface"}`}
+                  >
                     <Info size={20} />
                   </button>
                 </div>
