@@ -151,6 +151,21 @@ export const themes = {
       textSecondary: "rgb(180, 210, 220)",
     },
   },
+  pastelOrange: {
+    primary: "rgb(255, 179, 128)",
+    onPrimary: "rgb(255, 255, 255)",
+    bgPrimary: "rgb(255, 245, 238)",
+    bgSurface: "rgb(255, 255, 255)",
+    textPrimary: "rgb(74, 55, 40)",
+    textSecondary: "rgb(139, 115, 91)",
+    dark: {
+      primary: "rgb(255, 179, 128)",
+      bgPrimary: "rgb(44, 36, 30)",
+      bgSurface: "rgb(61, 50, 42)",
+      textPrimary: "rgb(245, 235, 224)",
+      textSecondary: "rgb(213, 199, 184)",
+    },
+  },
 };
 
 const ThemeContext = createContext();
