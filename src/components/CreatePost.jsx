@@ -42,6 +42,7 @@ const CreatePost = ({ onPostCreated }) => {
   const [locationName, setLocationName] = useState("");
   const [locationCoords, setLocationCoords] = useState(null);
   const [showLocationInput, setShowLocationInput] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
   // YouTube
@@ -134,6 +135,7 @@ const CreatePost = ({ onPostCreated }) => {
           setLocationName(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
         } finally {
           setIsLocating(false);
+          setShowLocationInput(true);
         }
       },
       (err) => {
@@ -269,6 +271,7 @@ const CreatePost = ({ onPostCreated }) => {
       setLocationName("");
       setLocationCoords(null);
       setShowLocationInput(false);
+      setShowLocationPicker(false);
       setActiveTab("text");
       setPostType("feed");
       setViewStyleOptions(false);
@@ -595,15 +598,28 @@ const CreatePost = ({ onPostCreated }) => {
               </button>
             </div>
           </div>
-          <LocationAutocomplete
-            onLocationSelect={(name, coords) => {
-              setLocationName(name);
-              setLocationCoords(coords);
-            }}
-            initialValue={locationName}
-            placeholder="Where are you?"
-          />
+          <button
+            onClick={() => setShowLocationPicker(true)}
+            className="w-full bg-white dark:bg-bg-surface px-4 py-3 rounded-xl text-sm border border-blue-200 dark:border-blue-900/30 text-text-secondary/60 hover:border-blue-500 transition-all text-left flex items-center justify-between"
+          >
+            {locationName || "Where are you?"}
+            <MapPin size={14} className="text-blue-500" />
+          </button>
         </div>
+      )}
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <LocationAutocomplete
+          onLocationSelect={(loc) => {
+            setLocationName(loc.description);
+            setLocationCoords(loc.coordinates);
+            setShowLocationPicker(false);
+            setShowLocationInput(true);
+          }}
+          onClose={() => setShowLocationPicker(false)}
+          initialValue={locationName}
+        />
       )}
 
       {/* Toolbar & Send */}
@@ -686,7 +702,13 @@ const CreatePost = ({ onPostCreated }) => {
 
           {/* Location */}
           <button
-            onClick={() => setShowLocationInput(!showLocationInput)}
+            onClick={() => {
+              if (!locationName && !showLocationInput) {
+                setShowLocationPicker(true);
+              } else {
+                setShowLocationInput(!showLocationInput);
+              }
+            }}
             className={`p-2.5 rounded-2xl transition-all group
                 ${showLocationInput || locationName ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "hover:bg-blue-50 text-blue-600"}
             `}

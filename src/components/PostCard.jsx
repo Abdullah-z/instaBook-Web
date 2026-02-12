@@ -24,6 +24,7 @@ import RepostModal from "./RepostModal";
 import HashtagText from "./HashtagText";
 import YouTubePlayer from "./YouTubePlayer";
 import ImageView from "./ImageView";
+import { shortenAddress } from "../utils/locationHelper";
 
 const getYoutubeId = (url) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -215,7 +216,7 @@ const PostCard = ({ post, onPostDelete }) => {
               alt={post.user?.username}
             />
             <div>
-              <h4 className="font-bold text-sm group-hover/avatar:underline decoration-primary">
+              <h4 className="font-medium text-sm group-hover/avatar:underline decoration-primary">
                 {post.user?.username}
               </h4>
               <p className="text-[10px] text-text-secondary font-medium tracking-wide flex items-center gap-1">
@@ -224,7 +225,7 @@ const PostCard = ({ post, onPostDelete }) => {
                 {post.location?.name || post.address ? (
                   <span className="flex items-center gap-0.5 text-primary">
                     <MapPin size={10} />
-                    {post.location?.name || post.address}
+                    {shortenAddress(post.location?.name || post.address)}
                   </span>
                 ) : null}
               </p>
@@ -287,11 +288,12 @@ const PostCard = ({ post, onPostDelete }) => {
       >
         <div className="block">
           <p
-            className={`whitespace-pre-wrap ${post.background && post.background !== "default" ? "text-2xl font-black drop-shadow-lg" : "text-sm leading-relaxed text-text-primary"}`}
-            style={
-              post.textStyle
+            className={`whitespace-pre-wrap font-light ${post.background && post.background !== "default" ? "text-2xl drop-shadow-lg" : "text-sm leading-relaxed text-text-primary"}`}
+            style={{
+              ...(post.textStyle
                 ? {
                     ...post.textStyle,
+                    fontWeight: 300,
                     color:
                       post.background &&
                       post.background !== "default" &&
@@ -299,8 +301,8 @@ const PostCard = ({ post, onPostDelete }) => {
                         ? "#FFFFFF"
                         : post.textStyle.color || undefined,
                   }
-                : {}
-            }
+                : { fontWeight: 300 }),
+            }}
           >
             <HashtagText text={post.content} />
           </p>
@@ -343,7 +345,7 @@ const PostCard = ({ post, onPostDelete }) => {
       {poll && (
         <div className="px-4 pb-4 space-y-3">
           <div className="bg-bg-surface border border-bg-primary/20 p-5 rounded-[2rem] shadow-sm ring-1 ring-primary/5">
-            <h5 className="font-bold text-sm mb-4 flex items-center gap-3">
+            <h5 className="font-semibold text-sm mb-4 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                 <BarChart2 size={16} className="text-primary" />
               </div>
@@ -386,7 +388,7 @@ const PostCard = ({ post, onPostDelete }) => {
                             animate={{ width: `${percent}%` }}
                             className={`absolute inset-y-0 left-0 pointer-events-none transition-colors ${userVotedForThis ? "bg-primary/20" : "bg-bg-primary/60"}`}
                           />
-                          <div className="relative flex items-center justify-between h-full text-xs font-bold pointer-events-none">
+                          <div className="relative flex items-center justify-between h-full text-xs font-medium pointer-events-none">
                             <span className="flex items-center gap-2">
                               {opt.text}
                               {userVotedForThis && (

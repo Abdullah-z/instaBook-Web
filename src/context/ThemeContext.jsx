@@ -166,6 +166,21 @@ export const themes = {
       textSecondary: "rgb(213, 199, 184)",
     },
   },
+  nothing: {
+    primary: "rgb(215, 26, 33)", // #D71A21
+    onPrimary: "rgb(255, 255, 255)",
+    bgPrimary: "rgb(254, 254, 254)", // #FEFEFE
+    bgSurface: "rgb(246, 246, 246)", // #F6F6F6
+    textPrimary: "rgb(0, 0, 0)",
+    textSecondary: "rgb(102, 102, 102)",
+    dark: {
+      primary: "rgb(215, 26, 33)", // #D71A21
+      bgPrimary: "rgb(13, 13, 15)", // #0D0D0F
+      bgSurface: "rgb(38, 38, 40)", // #262628 (Using user requested swatch)
+      textPrimary: "rgb(255, 255, 255)",
+      textSecondary: "rgb(160, 160, 160)",
+    },
+  },
 };
 
 const ThemeContext = createContext();

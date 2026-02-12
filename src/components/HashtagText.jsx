@@ -18,7 +18,7 @@ const HashtagText = ({ text }) => {
             <Link
               key={index}
               to={`/search?q=${encodeURIComponent(part)}`}
-              className="text-primary font-bold hover:underline"
+              className="text-primary font-light hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
               {part}
@@ -33,7 +33,7 @@ const HashtagText = ({ text }) => {
             <Link
               key={index}
               to={`/profile/${username}`} // Adjust route as per app structure
-              className="text-primary font-bold hover:underline"
+              className="text-primary font-light hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
               {part}
