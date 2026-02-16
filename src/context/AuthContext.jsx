@@ -10,30 +10,25 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const firstLogin = localStorage.getItem("firstLogin");
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
 
-    if (firstLogin && storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
+    const checkUser = async () => {
+      try {
+        const res = await API.get("/refresh_token");
+        setUser(res.data.user);
+        setToken(res.data.access_token);
+        localStorage.setItem("token", res.data.access_token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+      } catch (err) {
+        localStorage.removeItem("firstLogin");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setToken(null);
+        setUser(null);
+      }
       setLoading(false);
-    } else if (firstLogin) {
-      const checkUser = async () => {
-        try {
-          const res = await API.get("/refresh_token");
-          setUser(res.data.user);
-          setToken(res.data.access_token);
-          localStorage.setItem("token", res.data.access_token);
-          localStorage.setItem("user", JSON.stringify(res.data.user)); // Store user
-        } catch (err) {
-          localStorage.removeItem("firstLogin");
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          setToken(null);
-          setUser(null);
-        }
-        setLoading(false);
-      };
+    };
+
+    if (firstLogin) {
       checkUser();
     } else {
       setLoading(false);
