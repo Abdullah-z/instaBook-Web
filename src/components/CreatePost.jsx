@@ -12,6 +12,8 @@ import {
   Type,
   Youtube,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import API from "../utils/api";
@@ -177,6 +179,10 @@ const CreatePost = ({ onPostCreated }) => {
     if (activeTab === "poll" || !isDefaultBg) return;
 
     const files = [...e.target.files];
+    if (images.length + files.length > 8) {
+      return alert("You can only upload up to 8 images.");
+    }
+
     files.forEach((file) => {
       if (!file) return;
       if (file.size > 1024 * 1024 * 10)
@@ -208,6 +214,19 @@ const CreatePost = ({ onPostCreated }) => {
     if (pollOptions.length > 2) {
       setPollOptions(pollOptions.filter((_, i) => i !== index));
     }
+  };
+
+  const moveImage = (index, direction) => {
+    const newImages = [...images];
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= newImages.length) return;
+
+    const temp = newImages[index];
+    newImages[index] = newImages[targetIndex];
+    newImages[targetIndex] = temp;
+
+    setImages(newImages);
   };
 
   const handleSubmit = async (e) => {
@@ -443,12 +462,35 @@ const CreatePost = ({ onPostCreated }) => {
                   alt="preview"
                 />
               )}
-              <button
-                onClick={() => setImages(images.filter((_, i) => i !== index))}
-                className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 shadow-lg scale-0 group-hover:scale-100 transition-transform"
-              >
-                <X size={12} />
-              </button>
+              <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                {index > 0 && (
+                  <button
+                    onClick={() => moveImage(index, "left")}
+                    className="bg-primary text-white rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform"
+                    title="Move Left"
+                  >
+                    <ChevronLeft size={12} />
+                  </button>
+                )}
+                {index < images.length - 1 && (
+                  <button
+                    onClick={() => moveImage(index, "right")}
+                    className="bg-primary text-white rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform"
+                    title="Move Right"
+                  >
+                    <ChevronRight size={12} />
+                  </button>
+                )}
+                <button
+                  onClick={() =>
+                    setImages(images.filter((_, i) => i !== index))
+                  }
+                  className="bg-error text-white rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform"
+                  title="Remove"
+                >
+                  <X size={12} />
+                </button>
+              </div>
               {img.isVideo && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-white rounded-2xl pointer-events-none">
                   <Video size={20} />

@@ -11,6 +11,8 @@ import {
   MapPin,
   Youtube,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import API from "../utils/api";
 import { imageUpload } from "../utils/imageUpload";
@@ -146,6 +148,10 @@ const EditPost = () => {
     if (selectedBgId !== "default") return;
 
     const files = [...e.target.files];
+    if (images.length + files.length > 8) {
+      return alert("You can only upload up to 8 images.");
+    }
+
     files.forEach((file) => {
       if (!file) return;
       const reader = new FileReader();
@@ -166,6 +172,19 @@ const EditPost = () => {
       setRemovedImages((prev) => [...prev, imageToRemove]);
     }
     setImages(images.filter((_, i) => i !== index));
+  };
+
+  const moveImage = (index, direction) => {
+    const newImages = [...images];
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= newImages.length) return;
+
+    const temp = newImages[index];
+    newImages[index] = newImages[targetIndex];
+    newImages[targetIndex] = temp;
+
+    setImages(newImages);
   };
 
   const getLocation = () => {
@@ -368,12 +387,33 @@ const EditPost = () => {
                         className="w-full h-full object-cover rounded-xl"
                       />
                     )}
-                    <button
-                      onClick={() => removeImage(idx)}
-                      className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1 shadow-md scale-0 group-hover:scale-100 transition-transform"
-                    >
-                      <X size={14} />
-                    </button>
+                    <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      {idx > 0 && (
+                        <button
+                          onClick={() => moveImage(idx, "left")}
+                          className="bg-primary text-white rounded-full p-1 shadow-md hover:scale-110 transition-transform"
+                          title="Move Left"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                      )}
+                      {idx < images.length - 1 && (
+                        <button
+                          onClick={() => moveImage(idx, "right")}
+                          className="bg-primary text-white rounded-full p-1 shadow-md hover:scale-110 transition-transform"
+                          title="Move Right"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => removeImage(idx)}
+                        className="bg-error text-white rounded-full p-1 shadow-md hover:scale-110 transition-transform"
+                        title="Remove"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
