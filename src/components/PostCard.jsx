@@ -25,6 +25,7 @@ import HashtagText from "./HashtagText";
 import YouTubePlayer from "./YouTubePlayer";
 import ImageView from "./ImageView";
 import { shortenAddress } from "../utils/locationHelper";
+import PostImageGrid from "./PostImageGrid";
 
 const getYoutubeId = (url) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -421,41 +422,10 @@ const PostCard = ({ post, onPostDelete }) => {
       {/* Post Media */}
       <div className="block">
         {post.images && post.images.length > 0 ? (
-          <div
-            className={`grid gap-1 px-4 ${post.images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
-          >
-            {post.images.map((img, idx) => {
-              const isVideo =
-                img.url?.endsWith(".mp4") || img.resource_type === "video";
-              return (
-                <div
-                  key={idx}
-                  className="aspect-square rounded-2xl overflow-hidden bg-bg-primary"
-                >
-                  {isVideo ? (
-                    <video
-                      src={img.url}
-                      className="w-full h-full object-cover"
-                      controls
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={img.url}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-zoom-in"
-                      alt="post media"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewingImage(img.url);
-                      }}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <PostImageGrid
+            images={post.images}
+            onImageClick={(index) => setViewingImage(post.images[index].url)}
+          />
         ) : (
           youtubeId && (
             <div className="px-4 pb-4">
