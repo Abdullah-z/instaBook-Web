@@ -9,7 +9,6 @@ import {
   Check,
   X,
   Palette,
-  Type,
   Youtube,
   Loader2,
   ChevronLeft,
@@ -554,24 +553,24 @@ const CreatePost = ({ onPostCreated }) => {
                 ))}
               </div>
             </div>
-            <div className="bg-bg-primary/50 rounded-xl p-1 flex items-center gap-1 border border-bg-primary">
-              <button
-                onClick={() => setFontSize(Math.max(16, fontSize - 4))}
-                className="p-1.5 hover:bg-bg-surface rounded-lg transition-colors"
-                title="Decrease font size"
-              >
-                <Type size={14} />
-              </button>
-              <span className="text-xs font-mono font-bold w-8 text-center">
-                {fontSize}
-              </span>
-              <button
-                onClick={() => setFontSize(Math.min(48, fontSize + 4))}
-                className="p-1.5 hover:bg-bg-surface rounded-lg transition-colors"
-                title="Increase font size"
-              >
-                <Type size={18} />
-              </button>
+            <div className="flex gap-1.5">
+              {FONT_SIZES.map((size) => (
+                <button
+                  key={size}
+                  onClick={() => setFontSize(size)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all font-bold
+                    ${
+                      fontSize === size
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-bg-primary/50 text-text-secondary hover:bg-bg-primary"
+                    }`}
+                  title={`${size}px`}
+                >
+                  <span style={{ fontSize: `${10 + (size - 16) * 0.3}px` }}>
+                    A
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         </div>

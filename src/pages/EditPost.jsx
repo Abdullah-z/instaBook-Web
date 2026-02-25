@@ -5,7 +5,6 @@ import {
   Image,
   X,
   Palette,
-  Type,
   Check,
   Video,
   MapPin,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import API from "../utils/api";
 import { imageUpload } from "../utils/imageUpload";
-import { POST_BACKGROUNDS, TEXT_COLORS } from "../utils/postTheme";
+import { POST_BACKGROUNDS, TEXT_COLORS, FONT_SIZES } from "../utils/postTheme";
 import { useAuth } from "../hooks/useAuth";
 import LocationAutocomplete from "../components/LocationAutocomplete";
 
@@ -553,22 +552,24 @@ const EditPost = () => {
                 <label className="text-sm font-bold text-text-secondary mb-3 block">
                   Font Size
                 </label>
-                <div className="flex items-center gap-4 bg-bg-primary/50 p-2 rounded-2xl w-max">
-                  <button
-                    onClick={() => setFontSize(Math.max(16, fontSize - 4))}
-                    className="p-2 hover:bg-bg-surface rounded-xl"
-                  >
-                    <Type size={18} />
-                  </button>
-                  <span className="text-xl font-black w-8 text-center">
-                    {fontSize}
-                  </span>
-                  <button
-                    onClick={() => setFontSize(Math.min(40, fontSize + 4))}
-                    className="p-2 hover:bg-bg-surface rounded-xl"
-                  >
-                    <Type size={24} />
-                  </button>
+                <div className="flex gap-2">
+                  {FONT_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setFontSize(size)}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all font-bold
+                        ${
+                          fontSize === size
+                            ? "bg-primary text-white shadow-md"
+                            : "bg-bg-primary/50 text-text-secondary hover:bg-bg-primary"
+                        }`}
+                      title={`${size}px`}
+                    >
+                      <span style={{ fontSize: `${10 + (size - 16) * 0.3}px` }}>
+                        A
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
