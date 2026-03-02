@@ -11,6 +11,7 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import { SocketContext } from "./SocketContext";
 import { AuthContext } from "./AuthContext";
 import { toast } from "react-toastify";
+import API from "../utils/api";
 
 // Pre-configure Agora
 AgoraRTC.onAutoplayFailed = () => {
@@ -90,12 +91,17 @@ export const VoiceCallProvider = ({ children }) => {
   }, [selectedMicId]);
 
   useEffect(() => {
-    updateMicDevices();
-    AgoraRTC.onMicrophoneChanged = (info) => {
-      console.log("[VoiceCall] Microphone device changed:", info);
-      updateMicDevices();
+    // Only fetch microphones when they change IF we are in a call or incoming call
+    if (callState.inCall || callState.incomingCall) {
+      AgoraRTC.onMicrophoneChanged = (info) => {
+        console.log("[VoiceCall] Microphone device changed:", info);
+        updateMicDevices();
+      };
+    }
+    return () => {
+      AgoraRTC.onMicrophoneChanged = null;
     };
-  }, [updateMicDevices]);
+  }, [updateMicDevices, callState.inCall, callState.incomingCall]);
 
   const setMicrophone = async (deviceId) => {
     console.log(`[VoiceCall] Switching to microphone: ${deviceId}`);
@@ -113,29 +119,14 @@ export const VoiceCallProvider = ({ children }) => {
 
   const fetchAgoraToken = async (channelName, uid) => {
     try {
-      // Direct hardcoded URL to match mobile's success
-      const response = await fetch(
-        `https://instabook-server-production.up.railway.app/api/agora/token`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            channelName,
-            uid,
-            role: "publisher",
-          }),
-        },
-      );
+      const res = await API.post("/agora/token", {
+        channelName,
+        uid,
+        role: "publisher",
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch token");
-      }
-
-      const data = await response.json();
       console.log("✅ Token fetched successfully for channel:", channelName);
-      return data; // Return full data { token, appId }
+      return res.data; // Now contains token and appId
     } catch (err) {
       console.error("Failed to fetch Agora token:", err);
       return null;
@@ -514,6 +505,10 @@ export const VoiceCallProvider = ({ children }) => {
       const agoraUid = Math.floor(Math.random() * 100000);
 
       setIsJoining(true);
+
+      // Defer device enumeration until actually needed
+      await updateMicDevices();
+
       const tokenData = await fetchAgoraToken(channelName, agoraUid);
       if (!tokenData) {
         toast.error("Failed to generate call token");
@@ -521,6 +516,7 @@ export const VoiceCallProvider = ({ children }) => {
         return;
       }
 
+      // Use the appId from server, or fallback to the provided one if available
       const appId = tokenData.appId || "57f1b0fb4940493faf15457d2388d722";
 
       console.log(
