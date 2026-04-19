@@ -125,6 +125,12 @@ const Login = () => {
               >
                 Login
               </button>
+              <button
+                onClick={() => navigate("/explore")}
+                className="w-full py-4 text-primary font-bold text-lg hover:underline transition-all"
+              >
+                Explore without logging in &rarr;
+              </button>
             </div>
           </motion.div>
         ) : (

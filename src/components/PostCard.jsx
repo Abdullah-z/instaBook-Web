@@ -26,6 +26,7 @@ import YouTubePlayer from "./YouTubePlayer";
 import ImageView from "./ImageView";
 import { shortenAddress } from "../utils/locationHelper";
 import PostImageGrid from "./PostImageGrid";
+import { toast } from "react-toastify";
 
 const getYoutubeId = (url) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -47,7 +48,7 @@ const POST_BACKGROUNDS_MAP = {
   pinky: "linear-gradient(45deg, #EC008C, #FC6767)",
 };
 
-const PostCard = ({ post, onPostDelete }) => {
+const PostCard = ({ post, onPostDelete, readOnly = false }) => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [isLiked, setIsLiked] = useState(
@@ -69,6 +70,12 @@ const PostCard = ({ post, onPostDelete }) => {
     if (post.poll_question) setPoll(post);
   }, [post]);
 
+  const handleAuthRequired = (e) => {
+    e?.stopPropagation();
+    toast.info("Please log in to interact with posts!");
+    navigate("/login?redirect=explore");
+  };
+
   // Use a derived state or useEffect for voted to ensure it stays in sync with user/poll
   const voted = React.useMemo(() => {
     if (!currentUser || !poll) return false;
@@ -79,7 +86,9 @@ const PostCard = ({ post, onPostDelete }) => {
     );
   }, [poll, currentUser]);
 
-  const handleVote = async (optionIndex) => {
+  const handleVote = async (optionIndex, e) => {
+    e?.stopPropagation();
+    if (readOnly) return handleAuthRequired();
     if (!currentUser || !poll || loading) return;
 
     // Store previous state for revert
@@ -109,7 +118,9 @@ const PostCard = ({ post, onPostDelete }) => {
     }
   };
 
-  const toggleLike = async () => {
+  const toggleLike = async (e) => {
+    e?.stopPropagation();
+    if (readOnly) return handleAuthRequired();
     // Store current state for potential revert
     const previousIsLiked = isLiked;
     const previousLikesCount = likesCount;
@@ -148,6 +159,7 @@ const PostCard = ({ post, onPostDelete }) => {
 
   const handleShare = async (e) => {
     e?.stopPropagation();
+    if (readOnly) return handleAuthRequired();
     // Copy link is always an option, but for Repost we open the modal
     const action = window.confirm(
       "Would you like to Repost this to your feed? (Cancel to just copy link)",
@@ -169,6 +181,7 @@ const PostCard = ({ post, onPostDelete }) => {
 
   const toggleSave = async (e) => {
     e?.stopPropagation();
+    if (readOnly) return handleAuthRequired();
     if (!currentUser) return;
 
     const previousIsSaved = isSaved;
@@ -189,6 +202,7 @@ const PostCard = ({ post, onPostDelete }) => {
   const { setScrollPosition } = useFeed();
 
   const handleCardClick = () => {
+    if (readOnly) return handleAuthRequired();
     setScrollPosition(window.scrollY);
     navigate(`/post/${post._id}`);
   };
@@ -207,6 +221,7 @@ const PostCard = ({ post, onPostDelete }) => {
           <div
             onClick={(e) => {
               e.stopPropagation();
+              if (readOnly) return handleAuthRequired(e);
               navigate(`/profile/${post.user?._id}`);
             }}
             className="flex items-center gap-3 cursor-pointer group/avatar"
@@ -377,7 +392,7 @@ const PostCard = ({ post, onPostDelete }) => {
                           key={idx}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleVote(idx);
+                            handleVote(idx, e);
                           }}
                           disabled={loading}
                           className={`relative w-full h-11 rounded-xl overflow-hidden border transition-all text-left px-4 group/poll
@@ -442,7 +457,7 @@ const PostCard = ({ post, onPostDelete }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                toggleLike();
+                toggleLike(e);
               }}
               className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all font-bold text-sm
                 ${isLiked ? "bg-error/10 text-error" : "bg-bg-primary hover:bg-primary/10 text-text-secondary hover:text-primary"}
@@ -458,6 +473,7 @@ const PostCard = ({ post, onPostDelete }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (readOnly) return handleAuthRequired(e);
                 setIsModalOpen(true);
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-bg-primary hover:bg-primary/10 transition-all text-text-secondary hover:text-primary font-bold text-sm"

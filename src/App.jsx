@@ -34,6 +34,7 @@ import CreateEvent from "./pages/CreateEvent";
 import MyEvents from "./pages/MyEvents";
 import UserPostMap from "./pages/UserPostMap";
 import Reels from "./pages/Reels";
+import Explore from "./pages/Explore";
 
 // Admin Imports
 import AdminLayout from "./components/AdminLayout";
@@ -59,6 +60,7 @@ function AppRoutes() {
     <Routes location={location} key={location.pathname}>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/explore" element={<Explore />} />
       <Route
         path="/"
         element={
