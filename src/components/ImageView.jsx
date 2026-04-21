@@ -1,22 +1,38 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, Share2 } from "lucide-react";
+import { X, Download, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
  * ImageView Component
  * Provides a full-screen modal for viewing images with animations.
  *
  * @param {boolean} isOpen - Controls visibility of the modal
- * @param {string} imageUrl - The URL of the image to display
+ * @param {Array} images - Array of images
+ * @param {string} imageUrl - Fallback for single image url
+ * @param {number} initialIndex - The initial index of the image to display
  * @param {function} onClose - Function to call when closing the modal
  */
-const ImageView = ({ isOpen, imageUrl, onClose }) => {
-  if (!imageUrl) return null;
+const ImageView = ({ isOpen, images, imageUrl, initialIndex = 0, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex, isOpen]);
+
+  const imageList = images || (imageUrl ? [imageUrl] : []);
+
+  if (!isOpen || imageList.length === 0) return null;
+
+  const currentImage = typeof imageList[currentIndex] === 'string' 
+    ? imageList[currentIndex] 
+    : imageList[currentIndex]?.url;
+  
+  if (!currentImage) return null;
 
   const handleDownload = (e) => {
     e.stopPropagation();
     const link = document.createElement("a");
-    link.href = imageUrl;
+    link.href = currentImage;
     link.download = "image.jpg";
     document.body.appendChild(link);
     link.click();
@@ -29,14 +45,28 @@ const ImageView = ({ isOpen, imageUrl, onClose }) => {
       try {
         await navigator.share({
           title: "Check out this image",
-          url: imageUrl,
+          url: currentImage,
         });
       } catch (err) {
         console.error("Error sharing:", err);
       }
     } else {
-      navigator.clipboard.writeText(imageUrl);
+      navigator.clipboard.writeText(currentImage);
       alert("Link copied to clipboard!");
+    }
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    if (currentIndex < imageList.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
@@ -78,8 +108,27 @@ const ImageView = ({ isOpen, imageUrl, onClose }) => {
             </button>
           </div>
 
+          {imageList.length > 1 && currentIndex > 0 && (
+            <button
+              onClick={handlePrev}
+              className="absolute left-6 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all backdrop-blur-md border border-white/10 z-[5001]"
+            >
+              <ChevronLeft size={32} />
+            </button>
+          )}
+
+          {imageList.length > 1 && currentIndex < imageList.length - 1 && (
+            <button
+              onClick={handleNext}
+              className="absolute right-6 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all backdrop-blur-md border border-white/10 z-[5001]"
+            >
+              <ChevronRight size={32} />
+            </button>
+          )}
+
           {/* Image Container */}
           <motion.div
+            key={currentIndex}
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
@@ -88,7 +137,7 @@ const ImageView = ({ isOpen, imageUrl, onClose }) => {
             className="relative max-w-full max-h-full flex items-center justify-center"
           >
             <img
-              src={imageUrl}
+              src={currentImage}
               alt="Full Screen View"
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
             />

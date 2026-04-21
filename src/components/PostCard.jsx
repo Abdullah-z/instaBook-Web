@@ -62,7 +62,7 @@ const PostCard = ({ post, onPostDelete, readOnly = false }) => {
     currentUser?.saved?.includes(post._id) ? true : false,
   );
   const [poll, setPoll] = useState(post.poll_question ? post : null);
-  const [viewingImage, setViewingImage] = useState(null);
+  const [viewingImageIndex, setViewingImageIndex] = useState(null);
   const youtubeId = post.content ? getYoutubeId(post.content) : null;
 
   // Sync poll state when post prop changes
@@ -439,7 +439,7 @@ const PostCard = ({ post, onPostDelete, readOnly = false }) => {
         {post.images && post.images.length > 0 ? (
           <PostImageGrid
             images={post.images}
-            onImageClick={(index) => setViewingImage(post.images[index].url)}
+            onImageClick={(index) => setViewingImageIndex(index)}
           />
         ) : (
           youtubeId && (
@@ -473,7 +473,6 @@ const PostCard = ({ post, onPostDelete, readOnly = false }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (readOnly) return handleAuthRequired(e);
                 setIsModalOpen(true);
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-bg-primary hover:bg-primary/10 transition-all text-text-secondary hover:text-primary font-bold text-sm"
@@ -509,7 +508,7 @@ const PostCard = ({ post, onPostDelete, readOnly = false }) => {
 
       <AnimatePresence>
         {isModalOpen && (
-          <CommentModal post={post} onClose={() => setIsModalOpen(false)} />
+          <CommentModal post={post} readOnly={readOnly} onClose={() => setIsModalOpen(false)} />
         )}
         {isRepostModalOpen && (
           <RepostModal
@@ -523,9 +522,10 @@ const PostCard = ({ post, onPostDelete, readOnly = false }) => {
       </AnimatePresence>
 
       <ImageView
-        isOpen={!!viewingImage}
-        imageUrl={viewingImage}
-        onClose={() => setViewingImage(null)}
+        isOpen={viewingImageIndex !== null}
+        images={post.images || []}
+        initialIndex={viewingImageIndex !== null ? viewingImageIndex : 0}
+        onClose={() => setViewingImageIndex(null)}
       />
     </motion.article>
   );
