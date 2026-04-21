@@ -5,7 +5,7 @@ import { format } from "timeago.js";
 import API from "../utils/api";
 import { useAuth } from "../hooks/useAuth";
 
-const CommentModal = ({ post, onClose }) => {
+const CommentModal = ({ post, readOnly = false, onClose }) => {
   const { user: currentUser } = useAuth();
   const [content, setContent] = useState("");
   const [comments, setComments] = useState(post.comments || []);
@@ -161,18 +161,20 @@ const CommentModal = ({ post, onClose }) => {
                       <span className="text-[9px] text-text-secondary font-medium">
                         {format(comment.createdAt)}
                       </span>
-                      <button
-                        onClick={() => {
-                          setOnReply({
-                            id: comment._id,
-                            username: comment.user.username,
-                          });
-                          setContent(`@${comment.user.username} `);
-                        }}
-                        className="text-[9px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter"
-                      >
-                        Reply
-                      </button>
+                      {!readOnly && (
+                        <button
+                          onClick={() => {
+                            setOnReply({
+                              id: comment._id,
+                              username: comment.user.username,
+                            });
+                            setContent(`@${comment.user.username} `);
+                          }}
+                          className="text-[9px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter"
+                        >
+                          Reply
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -190,54 +192,56 @@ const CommentModal = ({ post, onClose }) => {
         </div>
 
         {/* Modal Footer (Input) */}
-        <div className="p-6 bg-bg-surface/80 backdrop-blur-md border-t border-bg-primary/20">
-          {onReply && (
-            <div className="flex items-center justify-between mb-2 px-4 py-2 bg-primary/10 rounded-xl">
-              <p className="text-[10px] font-bold text-primary">
-                Replying to @{onReply.username}
-              </p>
-              <button
-                onClick={() => {
-                  setOnReply(null);
-                  setContent("");
-                }}
-                className="text-[10px] text-error font-black uppercase"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-          <form onSubmit={handleComment} className="flex gap-4">
-            <img
-              src={currentUser?.avatar}
-              className="w-11 h-11 rounded-2xl object-cover shadow-lg ring-2 ring-primary/10"
-              alt="my avatar"
-            />
-            <div className="flex-1 relative">
-              <input
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={
-                  onReply
-                    ? `Reply to ${onReply.username}...`
-                    : "Write a thoughtful comment..."
-                }
-                className="w-full bg-bg-primary border-none outline-none py-3.5 pl-5 pr-14 rounded-2xl text-sm shadow-inner"
+        {!readOnly && (
+          <div className="p-6 bg-bg-surface/80 backdrop-blur-md border-t border-bg-primary/20">
+            {onReply && (
+              <div className="flex items-center justify-between mb-2 px-4 py-2 bg-primary/10 rounded-xl">
+                <p className="text-[10px] font-bold text-primary">
+                  Replying to @{onReply.username}
+                </p>
+                <button
+                  onClick={() => {
+                    setOnReply(null);
+                    setContent("");
+                  }}
+                  className="text-[10px] text-error font-black uppercase"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <form onSubmit={handleComment} className="flex gap-4">
+              <img
+                src={currentUser?.avatar}
+                className="w-11 h-11 rounded-2xl object-cover shadow-lg ring-2 ring-primary/10"
+                alt="my avatar"
               />
-              <button
-                type="submit"
-                disabled={loading || !content.trim()}
-                className="absolute right-2 top-1.5 p-2 bg-primary text-on-primary rounded-xl shadow-xl shadow-primary/30 disabled:opacity-50 hover:scale-105 active:scale-95 transition-all"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Send size={20} />
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+              <div className="flex-1 relative">
+                <input
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={
+                    onReply
+                      ? `Reply to ${onReply.username}...`
+                      : "Write a thoughtful comment..."
+                  }
+                  className="w-full bg-bg-primary border-none outline-none py-3.5 pl-5 pr-14 rounded-2xl text-sm shadow-inner"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !content.trim()}
+                  className="absolute right-2 top-1.5 p-2 bg-primary text-on-primary rounded-xl shadow-xl shadow-primary/30 disabled:opacity-50 hover:scale-105 active:scale-95 transition-all"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send size={20} />
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </motion.div>
     </div>
   );
